@@ -1,0 +1,47 @@
+{
+  "functions": {
+    "api/cron/publish.ts": {
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/indexer",
+      "destination": "/tools/blogger-seo-indexer/index.html"
+    },
+    {
+      "source": "/indexer/(.*)",
+      "destination": "/tools/blogger-seo-indexer/index.html"
+    },
+    {
+      "source": "/seo-pdf",
+      "destination": "/tools/seo-automation-pdf/index.html"
+    },
+    {
+      "source": "/seo-pdf/(.*)",
+      "destination": "/tools/seo-automation-pdf/index.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/admin.html"
+    },
+    {
+      "source": "/admin/(.*)",
+      "destination": "/admin.html"
+    },
+    {
+      "source": "/api/((?!cron/).*)",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/publish",
+      "schedule": "30 3 * * *"
+    }
+  ]
+}
