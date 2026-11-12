@@ -2,42 +2,55 @@
 
 ## Required Vercel environment variables
 
-Configure these only in the Vercel project settings. Do not commit populated values.
+Set these in the Vercel project's **Settings → Environment Variables** for Production (and Preview/Development if you will use those environments). The application expects these exact names:
 
-| Variable | Purpose |
+| Variable | Value |
 | --- | --- |
-| `SUPABASE_URL` | New Vernika Supabase project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-only Supabase service role key |
-| `VITE_SUPABASE_URL` | Supabase project URL used by the browser |
-| `VITE_SUPABASE_ANON_KEY` | Supabase public anon key; protect tables with the included RLS setup |
-| `ADMIN_USERNAME` | Initial Vernika admin username |
-| `ADMIN_PASSWORD` | Initial Vernika admin password |
-| `ADMIN_OTP` | Initial admin second factor |
-| `SESSION_SECRET` | Random signing secret of at least 32 characters |
-| `CREDENTIAL_ENCRYPTION_KEY` | Base64-encoded random 32-byte AES-256-GCM key |
+| `SUPABASE_URL` | Project URL from Supabase **Project Settings → API** |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-side service-role/secret key for that Supabase project. Keep it private; never use a `VITE_` name. |
+| `ADMIN_USERNAME` | Username you choose for the Vernika administrator, for example `vernika-admin` |
+| `ADMIN_PASSWORD` | A unique, strong password you choose |
+| `ADMIN_OTP` | Your administrator's numeric OTP, 6–10 digits |
+| `SESSION_SECRET` | Random signing secret, at least 32 characters |
+| `CREDENTIAL_ENCRYPTION_KEY` | Base64-encoded random 32-byte key used to encrypt saved integration credentials |
 
-Generate `SESSION_SECRET` and `CREDENTIAL_ENCRYPTION_KEY` independently. Changing either after deployment invalidates sessions or prevents decryption of previously saved credentials.
+These are the minimum setup variables for the shared admin/customer login and credential management. No Supabase anon key or `VITE_SUPABASE_ANON_KEY` is required by this application. If Vercel's Supabase integration created variables with different names, add the names above in Vercel and use the matching values from that same project.
+
+Generate unique values locally in Terminal; do not paste secret values into source files or commit them:
+
+```sh
+python3 -c 'import secrets; print(secrets.token_urlsafe(32))' # use for ADMIN_PASSWORD
+python3 -c 'import secrets; print(f"{secrets.randbelow(10**8):08d}")' # use for ADMIN_OTP
+openssl rand -base64 32 # use one output for SESSION_SECRET
+openssl rand -base64 32 # run again; use the other output for CREDENTIAL_ENCRYPTION_KEY
+```
+
+Keep the encryption key backed up securely. Changing `SESSION_SECRET` invalidates sessions; changing `CREDENTIAL_ENCRYPTION_KEY` prevents decryption of credentials already saved by the admin.
+
+After setting these values and deploying, sign in at `https://<your-vercel-domain>/admin` using `ADMIN_USERNAME` and `ADMIN_PASSWORD`, then enter `ADMIN_OTP`. The same admin credentials are accepted by the shared login used across the three tool dashboards and grant administrator access to all supported tools. Customer accounts are created separately inside the admin console.
 
 ## Automated Blogger
 
-Required when the corresponding publishing features are used:
+Set these only if you will use server-configured Blogger publishing or scheduled publishing. Individual integrations can also be added under the admin console instead.
 
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
 - `GOOGLE_REFRESH_TOKEN`
-- `BLOGGER_BLOG_ID`
-- `PUBLISH_SECRET`
-- `CRON_SECRET`
-- `APP_URL`
+- `BLOGGER_BLOG_ID` (optional if using the existing default blog ID)
+- `PUBLISH_SECRET` (optional; protects external publishing triggers)
+- `CRON_SECRET` (optional; set if you want to protect the Vercel Cron endpoint)
 
 Optional server-side AI and image providers:
 
 - `DEEPSEEK_API_KEY`
 - `GEMINI_API_KEY`
 - `POLLINATIONS_API_KEY`
-- `POLLINATIONS_APP_KEY`
 
-Firebase Web configuration can be added as `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, and `VITE_FIREBASE_APP_ID` if Firebase sign-in is enabled. These are browser configuration values, not server secrets. Firebase sign-in is not required for the Vernika account login.
+The existing n8n workflow does not need to be recreated or configured through new environment variables. Its integration can continue to use the existing defaults or the admin-managed `n8n-config`.
+
+If you need to override the existing n8n defaults globally, the optional server variables are `N8N_WEBHOOK_URL`, `N8N_MCP_URL`, and `N8N_API_KEY`. Otherwise, leave them unset.
+
+Firebase Web configuration can be added as `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, and `VITE_FIREBASE_APP_ID` only if Firebase sign-in is enabled. These are browser configuration values, not server secrets. Firebase sign-in is not required for the Vernika account login.
 
 ## Blogger SEO Indexer
 
@@ -49,6 +62,7 @@ Firebase Web configuration can be added as `VITE_FIREBASE_API_KEY`, `VITE_FIREBA
 
 - Service-account JSON can be supplied by an admin using `GOOGLE_SERVICE_ACCOUNT_JSON`, or entered by the customer in the tool.
 - Admin-managed `GITHUB_TOKEN` and `INDEXNOW_KEY` credentials are consumed server-side for the corresponding PDF Studio operations.
+- Optional server variables are `GITHUB_REPO`, `GITHUB_BRANCH` (defaults to `main`), `GITHUB_TOKEN`, and `INDEXNOW_KEY`; admin-managed credentials may be used instead.
 - The studio uses the shared project URL and private server key for server-side database operations.
 
 ## Admin-managed customer credentials
