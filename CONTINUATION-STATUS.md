@@ -6,6 +6,12 @@ Updated: 2026-11-13
 
 **The requested consolidated application code and multi-page build are present.** Remaining completion work is external setup and runtime validation: apply the SQL, configure Vercel/Supabase variables, and run a deployed smoke test.
 
+## Repository
+
+- Public repository: https://github.com/aws-shashanksingh/Vernika-Workflows
+- Default branch: `main`
+- The repository root is this `Vernika-Workflows` directory; dependencies, build output, and runtime `data/` directories are excluded.
+
 ## User-request checklist
 
 ### Consolidate the applications
@@ -75,7 +81,7 @@ Updated: 2026-11-13
 ## Guardrails for continuation
 
 - Leave the existing Automated Blogger content/business logic and n8n workflow alone unless the user specifically asks for changes.
-- Do not create/push a GitHub repository or deploy.
+- The repository has been pushed; do not deploy until the owner configures the new Vercel/Supabase project.
 - Do not request or add credentials to source. The user will configure fresh Vercel and Supabase credentials.
 - Apply the latest SQL in `supabase/vernika_platform.sql` and `supabase/schema.sql`; the admin usage panel expects `vernika_storage_usage()`.
 - The three sibling source folders were removed after their contents were compared with the consolidated tool directories.
