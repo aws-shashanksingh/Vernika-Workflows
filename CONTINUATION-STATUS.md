@@ -54,7 +54,7 @@ Updated: 2026-11-13
 
 ### Database, configuration, and deployment
 
-- [x] Provide `supabase/vernika_platform.sql` and `supabase/schema.sql`.
+- [x] Provide `supabase/vernika_complete_schema.sql` as the single SQL setup script.
 - [x] Provide `.env.example` and `DEPLOYMENT-REQUIREMENTS.md`; new credentials are to be configured manually by the user in Vercel.
 - [x] Keep Supabase service-role access server-side and remove direct browser use of customer service-role keys.
 - [x] Restrict Blogger workflow tables to service-role access in the supplied schema.
@@ -83,5 +83,5 @@ Updated: 2026-11-13
 - Leave the existing Automated Blogger content/business logic and n8n workflow alone unless the user specifically asks for changes.
 - The repository has been pushed; do not deploy until the owner configures the new Vercel/Supabase project.
 - Do not request or add credentials to source. The user will configure fresh Vercel and Supabase credentials.
-- Apply the latest SQL in `supabase/vernika_platform.sql` and `supabase/schema.sql`; the admin usage panel expects `vernika_storage_usage()`.
+- Apply `supabase/vernika_complete_schema.sql` once; it creates both the platform and Blogger workflow tables and includes `vernika_storage_usage()`.
 - The three sibling source folders were removed after their contents were compared with the consolidated tool directories.

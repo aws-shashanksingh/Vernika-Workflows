@@ -78,10 +78,9 @@ Customer-entered Google refresh tokens and AI keys are also saved encrypted to t
 ## Supabase setup
 
 1. Create a new Supabase project.
-2. Run the latest `supabase/vernika_platform.sql` in the SQL editor. It includes the restricted `vernika_storage_usage()` function used by the admin usage panel.
-3. Run `supabase/schema.sql` to create the existing Blogger workflow tables.
-4. Configure Vercel environment variables and deploy from the `Vernika-Workflows` directory.
-5. Test the admin login, create a customer, assign one or more tools, and set a future expiry before customer use.
+2. Run `supabase/vernika_complete_schema.sql` once in the SQL editor. It creates the shared platform/admin tables and existing Blogger/n8n workflow tables, including the restricted `vernika_storage_usage()` function used by the admin usage panel. Do not run the two component SQL files as well.
+3. Configure Vercel environment variables and deploy from the `Vernika-Workflows` directory.
+4. Test the admin login, create a customer, assign one or more tools, and set a future expiry before customer use.
 
 Customer password and OTP values are salted and hashed before storage. Admin-managed integration credentials are encrypted with AES-256-GCM; their plaintext values are not returned by the admin API. Keep the encryption key backed up outside the repository.
 
