@@ -243,12 +243,12 @@ Format as JSON:
 
         <!-- Verified Portals & Authority Links (Requirement: Real External Policy Links) -->
         <div style="background: #f8fafc; padding: 20px; border-radius: 10px; margin: 28px 0; border: 1px solid #e2e8f0; text-align: center;">
-          <strong style="color: #0f172a; display: block; margin-bottom: 12px; font-size: 15px;">🌐 Official Portals, Policy Guidelines &amp; Authority Links:</strong>
+          <strong style="color: #0f172a; display: block; margin-bottom: 12px; font-size: 15px;">Official Portals, Policy Guidelines &amp; Authority Links:</strong>
           <div style="line-height: 2.6;">
-            <a href="https://www.transportation.gov/airconsumer/file-consumer-complaint" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin: 4px 6px; padding: 8px 16px; background: #1e3a8a; color: #ffffff; text-decoration: none; border-radius: 20px; font-size: 12px; font-weight: bold;">⚖️ US DOT Consumer Protection Portal</a>
-            <a href="https://www.transportation.gov/airconsumer/fly-rights" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin: 4px 6px; padding: 8px 16px; background: #0369a1; color: #ffffff; text-decoration: none; border-radius: 20px; font-size: 12px; font-weight: bold;">📜 US DOT Fly Rights Guide</a>
-            <a href="https://easyflightconnectblog.blogspot.com/" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin: 4px 6px; padding: 8px 16px; background: #0284c7; color: #ffffff; text-decoration: none; border-radius: 20px; font-size: 12px; font-weight: bold;">✈️ EasyFlightConnect Directory</a>
-            <a href="https://automated-blogger-one.vercel.app" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin: 4px 6px; padding: 8px 16px; background: #334155; color: #ffffff; text-decoration: none; border-radius: 20px; font-size: 12px; font-weight: bold;">🛡️ Platform Terms &amp; Policies</a>
+            <a href="https://www.transportation.gov/airconsumer/file-consumer-complaint" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin: 4px 6px; padding: 8px 16px; background: #1e3a8a; color: #ffffff; text-decoration: none; border-radius: 20px; font-size: 12px; font-weight: bold;">US DOT Consumer Protection Portal</a>
+            <a href="https://www.transportation.gov/airconsumer/fly-rights" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin: 4px 6px; padding: 8px 16px; background: #0369a1; color: #ffffff; text-decoration: none; border-radius: 20px; font-size: 12px; font-weight: bold;">US DOT Fly Rights Guide</a>
+            <a href="https://easyflightconnectblog.blogspot.com/" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin: 4px 6px; padding: 8px 16px; background: #0284c7; color: #ffffff; text-decoration: none; border-radius: 20px; font-size: 12px; font-weight: bold;">EasyFlightConnect Directory</a>
+            <a href="https://automated-blogger-one.vercel.app" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin: 4px 6px; padding: 8px 16px; background: #334155; color: #ffffff; text-decoration: none; border-radius: 20px; font-size: 12px; font-weight: bold;">Platform Terms &amp; Policies</a>
           </div>
         </div>
 
@@ -269,7 +269,7 @@ Format as JSON:
             Need urgent assistance with flight reservations, rebooking, ticket changes, or passenger support?
           </p>
           <a href="tel:+18887943464" style="display: inline-block; background: #ffffff; color: #0284c7; padding: 12px 28px; font-size: 20px; font-weight: 900; text-decoration: none; border-radius: 50px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-            📞 Call Toll-Free: +1 (888) 794-3464
+            Call Toll-Free: +1 (888) 794-3464
           </a>
         </div>
 

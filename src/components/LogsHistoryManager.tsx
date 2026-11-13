@@ -15,7 +15,8 @@ import {
   Terminal, 
   RefreshCw,
   Eye,
-  Layers
+  Layers,
+  X
 } from 'lucide-react';
 import { GeneratedPost } from '../types/airline';
 
@@ -56,6 +57,7 @@ export const LogsHistoryManager: React.FC<LogsHistoryManagerProps> = ({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [copiedUrlId, setCopiedUrlId] = useState<string | null>(null);
   const [copiedAllUrls, setCopiedAllUrls] = useState(false);
+  const [notice, setNotice] = useState<{ title: string; lines: string[]; isError?: boolean } | null>(null);
 
   const filteredPosts = posts.filter(post => {
     const query = filterText.trim().toLowerCase();
@@ -92,7 +94,7 @@ export const LogsHistoryManager: React.FC<LogsHistoryManagerProps> = ({
     ).filter(p => !!p.publishedUrl);
 
     if (targets.length === 0) {
-      alert('No published URLs available to copy yet.');
+      setNotice({ title: 'No Published URLs', lines: ['No published URLs are available to copy yet.'], isError: true });
       return;
     }
 
@@ -166,6 +168,7 @@ export const LogsHistoryManager: React.FC<LogsHistoryManagerProps> = ({
               try {
                 const res = await fetch('/api/workflow/test-connection', { 
                   method: 'POST',
+                  credentials: 'include',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                     n8nWebhookUrl: webhookUrl,
@@ -175,18 +178,21 @@ export const LogsHistoryManager: React.FC<LogsHistoryManagerProps> = ({
                 });
                 const data = await res.json();
                 if (data.success) {
-                  const summary = [
-                    `Supabase API: ${data.supabase?.ok ? '✅ Active' : `❌ Failed (${data.supabase?.message || 'Error'})`}`,
-                    `Supabase Storage: ${data.supabaseStorage?.ok ? '✅ Active' : `❌ Failed (${data.supabaseStorage?.message || 'Error'})`}`,
-                    `n8n Webhook: ${data.n8nWebhook?.ok ? '✅ Active' : `❌ Failed (${data.n8nWebhook?.message || 'Error'})`}`,
-                    `n8n MCP: ${data.n8nMcp?.ok ? '✅ Active' : `❌ Failed (${data.n8nMcp?.message || 'Error'})`}`
-                  ].join('\n');
-                  alert(`Connectivity Check Results:\n\n${summary}\n\nCheck "Step 5: Real-Time Logs" for more details if any checks failed.`);
+                  setNotice({
+                    title: 'Connectivity Check Results',
+                    lines: [
+                      `Supabase API: ${data.supabase?.ok ? 'Active' : `Failed (${data.supabase?.message || 'Error'})`}`,
+                      `Supabase Storage: ${data.supabaseStorage?.ok ? 'Active' : `Failed (${data.supabaseStorage?.message || 'Error'})`}`,
+                      `n8n Webhook: ${data.n8nWebhook?.ok ? 'Active' : `Failed (${data.n8nWebhook?.message || 'Error'})`}`,
+                      `n8n MCP: ${data.n8nMcp?.ok ? 'Active' : `Failed (${data.n8nMcp?.message || 'Error'})`}`,
+                      'Check "Real-Time Logs" below for additional diagnostics if any check failed.'
+                    ]
+                  });
                 } else {
-                  alert(`Connectivity Check Failed: ${data.error || 'Unknown server error'}`);
+                  setNotice({ title: 'Connectivity Check Failed', lines: [data.error || 'Unknown server error'], isError: true });
                 }
               } catch (e: any) { 
-                alert(`Connectivity test failed: ${e.message || 'Check your network connection.'}`); 
+                setNotice({ title: 'Connectivity Test Failed', lines: [e?.message || 'Check your network connection.'], isError: true });
               }
             }}
             className={`px-3 py-1.5 rounded-lg border text-[11px] font-bold flex items-center gap-1.5 transition ${
@@ -227,6 +233,24 @@ export const LogsHistoryManager: React.FC<LogsHistoryManagerProps> = ({
           </div>
         </div>
       </div>
+
+      {notice && (
+        <div role="alert" className={`rounded-xl border p-3 text-xs flex items-start justify-between gap-3 ${
+          notice.isError
+            ? 'border-rose-500/30 bg-rose-500/10 text-rose-500'
+            : isDarkMode ? 'border-sky-500/30 bg-sky-950/40 text-sky-200' : 'border-sky-200 bg-sky-50 text-sky-900'
+        }`}>
+          <div className="space-y-1">
+            <p className="font-bold">{notice.title}</p>
+            {notice.lines.map((line, idx) => (
+              <p key={idx} className="leading-relaxed">{line}</p>
+            ))}
+          </div>
+          <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss message" className="p-1 opacity-70 hover:opacity-100">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* TAB 1: POSTS & PUBLISHED DIRECTORY */}
       {activeTab === 'posts' && (

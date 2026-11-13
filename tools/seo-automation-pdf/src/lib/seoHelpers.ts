@@ -812,15 +812,15 @@ if [ -z "$SOFFICE_BIN" ]; then
 fi
 
 if [ -z "$SOFFICE_BIN" ]; then
-  echo "❌ LibreOffice (soffice) was not found on your system."
-  echo "⬇ Please download and install LibreOffice from: https://www.libreoffice.org/"
+  echo "[ERROR] LibreOffice (soffice) was not found on your system."
+  echo "Please download and install LibreOffice from: https://www.libreoffice.org/"
   exit 1
 fi
 
 mkdir -p pdfs
-echo "⚡ Converting DOCX files to PDF using LibreOffice ($SOFFICE_BIN)..."
+echo "Converting DOCX files to PDF using LibreOffice ($SOFFICE_BIN)..."
 "$SOFFICE_BIN" --headless --convert-to pdf --outdir "./pdfs" ./docx/*.docx
-echo "✅ Done! All PDFs have been saved in the ./pdfs folder."
+echo "Done! All PDFs have been saved in the ./pdfs folder."
 `;
 
   const windowsBat = `@echo off

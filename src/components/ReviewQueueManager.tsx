@@ -14,7 +14,8 @@ import {
   MapPin, 
   Sliders, 
   Sparkles,
-  Download
+  Download,
+  Phone
 } from 'lucide-react';
 import { GeneratedPost } from '../types/airline';
 
@@ -79,7 +80,7 @@ export const ReviewQueueManager: React.FC<ReviewQueueManagerProps> = ({
       }`}>
         <div>
           <h2 className="text-base font-bold flex items-center gap-2">
-            <span>📋 Full Review Queue</span>
+            <span>Full Review Queue</span>
             <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold border ${
               isDarkMode ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' : 'bg-sky-50 text-sky-600 border-sky-200'
             }`}>
@@ -96,12 +97,12 @@ export const ReviewQueueManager: React.FC<ReviewQueueManagerProps> = ({
           <span className={`text-[10px] px-2.5 py-1 rounded-lg border font-bold uppercase tracking-tight ${
             isDarkMode ? 'bg-emerald-950/30 border-emerald-800 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
           }`}>
-            ✓ Verified: <strong>{verifiedCount}</strong> / {posts.length}
+            Verified: <strong>{verifiedCount}</strong> / {posts.length}
           </span>
           <span className={`text-[10px] px-2.5 py-1 rounded-lg border font-bold uppercase tracking-tight ${
             isDarkMode ? 'bg-blue-950/30 border-blue-800 text-blue-400' : 'bg-blue-50 border-blue-200 text-blue-700'
           }`}>
-            🚀 Published: <strong>{publishedCount}</strong>
+            Published: <strong>{publishedCount}</strong>
           </span>
           {onCloseQueueView && (
             <button
@@ -292,7 +293,7 @@ export const ReviewQueueManager: React.FC<ReviewQueueManagerProps> = ({
                     {/* Metadata tags */}
                     <div className={`flex items-center gap-3 mt-2 text-[10px] font-medium flex-wrap ${isDarkMode ? 'text-slate-500' : 'text-slate-500'}`}>
                       <span className="flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400">
-                        📞 {post.tfnNumber}
+                        <Phone className="w-3 h-3" /> {post.tfnNumber}
                       </span>
                       <span className="flex items-center gap-1">
                         <Tag className="w-3 h-3 opacity-50" />

@@ -149,11 +149,11 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({
           <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
             {[
               { id: 'all', label: 'All Templates' },
-              { id: 'airlines', label: '✈️ Airlines' },
-              { id: 'travel', label: '🌍 Travel' },
-              { id: 'hotels', label: '🏨 Hotels' },
-              { id: 'agency', label: '💼 Agency' },
-              { id: 'custom', label: '⭐ Saved / n8n' }
+              { id: 'airlines', label: 'Airlines' },
+              { id: 'travel', label: 'Travel' },
+              { id: 'hotels', label: 'Hotels' },
+              { id: 'agency', label: 'Agency' },
+              { id: 'custom', label: 'Saved / n8n' }
             ].map(cat => (
               <button
                 key={cat.id}

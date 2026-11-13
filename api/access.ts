@@ -25,6 +25,7 @@ const supportedTools: Tool[] = ['blogger', 'indexer', 'seo-pdf'];
 const ADMIN_DATA_OWNER_ID = '00000000-0000-4000-8000-000000000001';
 let serviceClient: SupabaseClient | null = null;
 const sessionCache = new Map<string, { expiresAt: number; session: Session | null }>();
+const sessionLastTouch = new Map<string, number>();
 const workflowRequestContext = new AsyncLocalStorage<Session>();
 
 export function getWorkflowWorkspaceId(): string {
@@ -295,6 +296,13 @@ async function loadSession(token: string): Promise<Session | null> {
     session.profileName = user.profile_name;
     session.accountExpiresAt = user.expires_at;
     session.tools = user.assigned_tools.filter((tool: string): tool is Tool => supportedTools.includes(tool as Tool));
+    if (session.id && Date.now() - (sessionLastTouch.get(session.id) || 0) >= 30_000) {
+      sessionLastTouch.set(session.id, Date.now());
+      await client
+        .from('workflow_sessions')
+        .update({ last_active_at: now })
+        .eq('id', session.id);
+    }
   }
 
   sessionCache.set(token, { session, expiresAt: Math.min(Date.now() + 5000, session.exp) });
@@ -369,7 +377,7 @@ router.get('/api/access/health', async (_req, res) => {
   const checks = {
     supabaseUrl: Boolean(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL),
     supabaseServerKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY),
-    adminUsername: Boolean(process.env.ADMIN_USERNAME),
+    adminUsername: Boolean(process.env.ADMIN_USERNAME || 'rajputs'),
     adminPassword: Boolean(process.env.ADMIN_PASSWORD),
     adminOtp: /^\d{6,10}$/.test(process.env.ADMIN_OTP || ''),
     sessionSecret: (process.env.SESSION_SECRET || '').length >= 32,
@@ -413,10 +421,10 @@ router.post('/api/access/login', async (req, res) => {
     const username = String(req.body?.username || '').trim();
     const password = String(req.body?.password || '');
     const tool = getTool(req.body?.tool) || 'blogger';
-    const adminUsername = process.env.ADMIN_USERNAME;
+    const adminUsername = process.env.ADMIN_USERNAME || 'rajputs';
     const adminPassword = process.env.ADMIN_PASSWORD;
-    if (!adminUsername || !adminPassword) {
-      return res.status(503).json({ error: 'Admin login is not configured. Set ADMIN_USERNAME and ADMIN_PASSWORD in Vercel.' });
+    if (!adminPassword) {
+      return res.status(503).json({ error: 'Admin login is not configured. Set ADMIN_PASSWORD in Vercel.' });
     }
     if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32) {
       return res.status(503).json({ error: 'Authentication is not configured. Set SESSION_SECRET to a random value of at least 32 characters in Vercel.' });
@@ -542,10 +550,13 @@ router.post('/api/access/verify', async (req, res) => {
       const now = new Date().toISOString();
       const { error: revokeError } = await client
         .from('workflow_sessions')
-        .update({ revoked_at: now })
+        .update({ revoked_at: now, last_active_at: now })
         .eq('user_id', userId)
         .is('revoked_at', null);
       if (revokeError) throw revokeError;
+      for (const [cachedToken, cachedEntry] of sessionCache.entries()) {
+        if (cachedEntry.session?.userId === userId) sessionCache.delete(cachedToken);
+      }
       const { error: insertError } = await client.from('workflow_sessions').insert({
         id: sessionId,
         user_id: userId,
@@ -555,6 +566,7 @@ router.post('/api/access/verify', async (req, res) => {
         expires_at: new Date(expiresAt).toISOString(),
       });
       if (insertError) throw insertError;
+      sessionLastTouch.set(sessionId, Date.now());
       await recordActivity(userId, 'login', req, { tool: getTool(challenge.tool) });
     }
 
@@ -637,6 +649,40 @@ router.put('/api/account/credentials/blogger', async (req, res) => {
   }
 });
 
+router.get('/api/account/credentials/blogger/status', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  try {
+    const session = await verifyAccessToken(getRequestAccessToken(req));
+    if (!session) return res.status(401).json({ error: 'Sign in required.' });
+    if (session.role !== 'user' || !session.userId || !session.tools.includes('blogger')) {
+      return res.json({
+        hasRefreshToken: Boolean(process.env.GOOGLE_REFRESH_TOKEN),
+        hasGeminiKey: Boolean(process.env.GEMINI_API_KEY),
+        hasDeepSeekKey: Boolean(process.env.DEEPSEEK_API_KEY),
+        hasPollinationsKey: Boolean(process.env.POLLINATIONS_API_KEY),
+        hasN8nKey: Boolean(process.env.N8N_API_KEY),
+      });
+    }
+    const { data, error } = await getServiceClient()
+      .from('workflow_secrets')
+      .select('name')
+      .eq('user_id', session.userId)
+      .eq('tool', 'blogger');
+    if (error) throw error;
+    const names = new Set((data || []).map((row) => String(row.name)));
+    return res.json({
+      hasRefreshToken: names.has('GOOGLE_REFRESH_TOKEN'),
+      hasGeminiKey: names.has('GEMINI_API_KEY'),
+      hasDeepSeekKey: names.has('DEEPSEEK_API_KEY'),
+      hasPollinationsKey: names.has('POLLINATIONS_API_KEY'),
+      hasN8nKey: names.has('n8n-config'),
+    });
+  } catch (error) {
+    console.error('[Access] Blogger credential status load failed:', error);
+    return res.status(503).json({ error: 'Could not check saved Blogger credentials.' });
+  }
+});
+
 router.put('/api/account/credentials/blogger/:name', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   const allowedNames = new Set([
@@ -673,6 +719,68 @@ router.put('/api/account/credentials/blogger/:name', async (req, res) => {
   }
 });
 
+router.get('/api/account/credentials/seo-pdf/status', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  try {
+    const session = await verifyAccessToken(getRequestAccessToken(req));
+    if (!session) return res.status(401).json({ error: 'Sign in required.' });
+    if (!session.tools.includes('seo-pdf')) {
+      return res.status(403).json({ error: 'SEO PDF Studio access is required.' });
+    }
+    if (session.role !== 'user' || !session.userId) {
+      return res.json({
+        hasGithubToken: Boolean(process.env.GITHUB_TOKEN),
+        hasIndexNowKey: Boolean(process.env.INDEXNOW_KEY),
+      });
+    }
+    const { data, error } = await getServiceClient()
+      .from('workflow_secrets')
+      .select('name')
+      .eq('user_id', session.userId)
+      .eq('tool', 'seo-pdf');
+    if (error) throw error;
+    const names = new Set((data || []).map((row) => String(row.name)));
+    return res.json({
+      hasGithubToken: names.has('GITHUB_TOKEN'),
+      hasIndexNowKey: names.has('INDEXNOW_KEY'),
+    });
+  } catch (error) {
+    console.error('[Access] SEO PDF credential status load failed:', error);
+    return res.status(503).json({ error: 'Could not check saved SEO PDF credentials.' });
+  }
+});
+
+router.put('/api/account/credentials/seo-pdf/:name', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const allowedNames = new Set(['GITHUB_TOKEN', 'INDEXNOW_KEY']);
+  const name = String(req.params.name || '');
+  const value = req.body?.value;
+  try {
+    const session = await verifyAccessToken(getRequestAccessToken(req));
+    if (!session) return res.status(401).json({ error: 'Sign in required.' });
+    if (session.role !== 'user' || !session.userId || !session.tools.includes('seo-pdf')) {
+      return res.status(403).json({ error: 'SEO PDF Studio account access is required.' });
+    }
+    if (!allowedNames.has(name) || typeof value !== 'string' || value.length > 16384) {
+      return res.status(400).json({ error: 'Credential name or value is invalid.' });
+    }
+    if (value) {
+      await saveStoredCredential(session.userId, 'seo-pdf', name, value);
+    } else if (req.body?.delete === true) {
+      const { error } = await getServiceClient().from('workflow_secrets')
+        .delete()
+        .eq('user_id', session.userId)
+        .eq('tool', 'seo-pdf')
+        .eq('name', name);
+      if (error) throw error;
+    }
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('[Access] SEO PDF credential save failed:', error);
+    return res.status(503).json({ error: 'Could not securely save the SEO PDF credential.' });
+  }
+});
+
 router.post('/api/access/unlock', async (req, res) => {
   try {
     const session = await verifyAccessToken(getRequestAccessToken(req));
@@ -706,11 +814,13 @@ router.post('/api/access/logout', async (req, res) => {
     const token = getRequestAccessToken(req);
     const session = await verifyAccessToken(token);
     if (session?.role === 'user' && session.id) {
+      const now = new Date().toISOString();
       const client = getServiceClient();
       const { error } = await client.from('workflow_sessions')
-        .update({ revoked_at: new Date().toISOString() })
+        .update({ revoked_at: now, last_active_at: now })
         .eq('id', session.id);
       if (error) throw error;
+      sessionLastTouch.delete(session.id);
       sessionCache.delete(token || '');
     }
     res.clearCookie(TOKEN_COOKIE, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' });
@@ -859,16 +969,47 @@ router.get('/api/admin/sessions', requireAdmin, async (_req, res) => {
       .order('created_at', { ascending: false })
       .limit(500);
     if (error) throw error;
-    return res.json((data || []).map((record) => ({
-      ...record,
-      duration_seconds: Math.max(
-        0,
-        Math.floor((Date.parse(record.last_active_at || record.created_at) - Date.parse(record.created_at)) / 1000),
-      ),
-    })));
+    const now = new Date().toISOString();
+    return res.json((data || []).map((record) => {
+      const startMs = Date.parse(record.created_at);
+      const isClosed = Boolean(record.revoked_at) || Date.parse(record.expires_at) <= Date.now();
+      const endIso = record.last_active_at || (isClosed ? record.revoked_at || record.expires_at : now);
+      return {
+        ...record,
+        duration_seconds: Math.max(
+          0,
+          Math.floor((Date.parse(endIso) - startMs) / 1000),
+        ),
+      };
+    }));
   } catch (error) {
     console.error('[Admin] Session list failed:', error);
     return res.status(503).json({ error: 'Could not load login history.' });
+  }
+});
+
+router.post('/api/admin/sessions/:id/revoke', requireAdmin, async (req, res) => {
+  try {
+    const client = getServiceClient();
+    const now = new Date().toISOString();
+    const { data, error } = await client
+      .from('workflow_sessions')
+      .update({ revoked_at: now, last_active_at: now })
+      .eq('id', req.params.id)
+      .is('revoked_at', null)
+      .select('id,user_id')
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) {
+      return res.status(404).json({ error: 'Active session not found or already ended.' });
+    }
+    sessionLastTouch.delete(req.params.id);
+    sessionCache.clear();
+    await recordActivity(String(data.user_id), 'session_revoked', req, { session_id: req.params.id });
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('[Admin] Session revoke failed:', error);
+    return res.status(503).json({ error: 'Could not revoke session.' });
   }
 });
 
@@ -924,27 +1065,47 @@ router.get('/api/admin/usage', requireAdmin, async (_req, res) => {
   }
 });
 
-router.post('/api/admin/cleanup', requireAdmin, async (_req, res) => {
+router.post('/api/admin/cleanup', requireAdmin, async (req, res) => {
+  const rawScope = String(req.body?.scope || 'security');
+  const scope: 'security' | 'logs' | 'all' =
+    rawScope === 'logs' || rawScope === 'all' ? rawScope : 'security';
   try {
     const client = getServiceClient();
     const now = new Date().toISOString();
-    const [expiredSessions, revokedSessions, expiredAttempts] = await Promise.all([
-      client.from('workflow_sessions').delete({ count: 'exact' }).lt('expires_at', now).is('revoked_at', null),
-      client.from('workflow_sessions').delete({ count: 'exact' }).not('revoked_at', 'is', null),
-      client.from('workflow_login_attempts').delete({ count: 'exact' }).lt('expires_at', now),
-    ]);
-    const errors = [expiredSessions.error, revokedSessions.error, expiredAttempts.error].filter(Boolean);
-    if (errors.length) throw new Error(errors.map((error) => error?.message).join('; '));
-    const deleted = {
-      expiredSessions: expiredSessions.count || 0,
-      revokedSessions: revokedSessions.count || 0,
-      expiredLoginAttempts: expiredAttempts.count || 0,
-    };
-    await recordActivity(null, 'safe_cleanup_completed', _req, deleted);
-    return res.json({ success: true, deleted });
+    const cutoff30Days = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const deleted: Record<string, number> = {};
+
+    if (scope === 'security' || scope === 'all') {
+      const [expiredSessions, revokedSessions, expiredAttempts] = await Promise.all([
+        client.from('workflow_sessions').delete({ count: 'exact' }).lt('expires_at', now).is('revoked_at', null),
+        client.from('workflow_sessions').delete({ count: 'exact' }).not('revoked_at', 'is', null),
+        client.from('workflow_login_attempts').delete({ count: 'exact' }).lt('expires_at', now),
+      ]);
+      const securityErrors = [expiredSessions.error, revokedSessions.error, expiredAttempts.error].filter(Boolean);
+      if (securityErrors.length) throw new Error(securityErrors.map((err) => err?.message).join('; '));
+      deleted.expiredSessions = expiredSessions.count || 0;
+      deleted.revokedSessions = revokedSessions.count || 0;
+      deleted.expiredLoginAttempts = expiredAttempts.count || 0;
+    }
+
+    if (scope === 'logs' || scope === 'all') {
+      const [oldActivityLogs, oldUrlLogs, oldRequests] = await Promise.all([
+        client.from('workflow_activity_logs').delete({ count: 'exact' }).lt('created_at', cutoff30Days),
+        client.from('url_logs').delete({ count: 'exact' }).lt('created_at', cutoff30Days),
+        client.from('requests').delete({ count: 'exact' }).in('status', ['completed', 'error']).lt('created_at', cutoff30Days),
+      ]);
+      const logErrors = [oldActivityLogs.error, oldUrlLogs.error, oldRequests.error].filter(Boolean);
+      if (logErrors.length) throw new Error(logErrors.map((err) => err?.message).join('; '));
+      deleted.oldActivityLogs = oldActivityLogs.count || 0;
+      deleted.oldUrlLogs = oldUrlLogs.count || 0;
+      deleted.oldWorkflowRequests = oldRequests.count || 0;
+    }
+
+    await recordActivity(null, 'safe_cleanup_completed', req, { scope, ...deleted });
+    return res.json({ success: true, scope, deleted });
   } catch (error) {
     console.error('[Admin] Safe cleanup failed:', error);
-    return res.status(503).json({ error: 'Could not clean expired session and login-attempt records.' });
+    return res.status(503).json({ error: 'Could not clean obsolete records.' });
   }
 });
 

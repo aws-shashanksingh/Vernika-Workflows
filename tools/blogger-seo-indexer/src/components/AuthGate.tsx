@@ -36,6 +36,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({ onAuthenticated, lockNotice 
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(true);
   const [installed, setInstalled] = useState(false);
+  const [installHelpOpen, setInstallHelpOpen] = useState(false);
 
   useEffect(() => {
     // Check if dismissed previously this session
@@ -72,10 +73,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({ onAuthenticated, lockNotice 
       }
       setDeferredPrompt(null);
     } else {
-      // Fallback instructions for iOS / desktop
-      alert(
-        'To install SEO INDEXER:\n\n• On iPhone/iPad: Tap Share (square with arrow) -> "Add to Home Screen".\n• On Chrome/Edge Desktop: Click the Install icon in the address bar (top right).\n• On Android: Tap Menu (three dots) -> "Install app" or "Add to Home screen".'
-      );
+      setInstallHelpOpen(true);
     }
   };
 
@@ -359,6 +357,28 @@ export const AuthGate: React.FC<AuthGateProps> = ({ onAuthenticated, lockNotice 
                 aria-label="Dismiss app install banner"
               >
                 <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {installHelpOpen && (
+        <div role="dialog" aria-modal="true" aria-labelledby="install-help-title" className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-neutral-800 bg-neutral-900 p-5 text-neutral-100 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
+              <h3 id="install-help-title" className="text-sm font-bold">Install SEO INDEXER</h3>
+              <button type="button" onClick={() => setInstallHelpOpen(false)} aria-label="Close install instructions" className="rounded-lg p-1 text-neutral-400 hover:bg-neutral-800 hover:text-white">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <ul className="mt-3 space-y-2 text-xs leading-relaxed text-neutral-300">
+              <li><strong>iPhone / iPad:</strong> Tap Share and select Add to Home Screen.</li>
+              <li><strong>Chrome / Edge Desktop:</strong> Click the Install icon in the address bar.</li>
+              <li><strong>Android:</strong> Open browser menu and tap Install app or Add to Home screen.</li>
+            </ul>
+            <div className="mt-4 flex justify-end">
+              <button type="button" onClick={() => setInstallHelpOpen(false)} className="rounded-xl bg-emerald-500 px-4 py-2 text-xs font-bold text-neutral-950 hover:bg-emerald-400">
+                Got it
               </button>
             </div>
           </div>

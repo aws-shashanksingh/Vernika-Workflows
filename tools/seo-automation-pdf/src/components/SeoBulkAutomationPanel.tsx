@@ -59,11 +59,11 @@ const SPINTAX_PRESETS: Record<string, { label: string; template: string }> = {
   },
   greyhat: {
     label: 'Greyhat: High-CTR Parasite PDF / Landing Page Callout',
-    template: `# ⚡ {URGENT|24/7 DIRECT}: {AIRLINE} Airlines {KEYWORD} Helpline {TFN}\n\n**{Need Immediate Rebooking?|Missed Your {AIRLINE} Connection?|Avoid Ticket Cancellation Now!}** Call {TFN} ({TFN_OBFUSCATED}) to speak directly with a {live|certified|senior} {AIRLINE} {itinerary specialist|rebooking agent} in under 60 seconds.\n\n## {AIRLINE} Same-Day {Rebooking|Standby|Ticket Protection} Checklist ({YEAR})\n- **No-Show Protection Window:** Call {TFN} before gate closure to preserve ticket value.\n- **Baggage & Connecting Flights:** Reroute checked luggage immediately via {TFN}.\n- **24/7 Priority Desk:** {TFN} | {TFN_OBFUSCATED}`,
+    template: `# {URGENT|24/7 DIRECT}: {AIRLINE} Airlines {KEYWORD} Helpline {TFN}\n\n**{Need Immediate Rebooking?|Missed Your {AIRLINE} Connection?|Avoid Ticket Cancellation Now!}** Call {TFN} ({TFN_OBFUSCATED}) to speak directly with a {live|certified|senior} {AIRLINE} {itinerary specialist|rebooking agent} in under 60 seconds.\n\n## {AIRLINE} Same-Day {Rebooking|Standby|Ticket Protection} Checklist ({YEAR})\n- **No-Show Protection Window:** Call {TFN} before gate closure to preserve ticket value.\n- **Baggage & Connecting Flights:** Reroute checked luggage immediately via {TFN}.\n- **24/7 Priority Desk:** {TFN} | {TFN_OBFUSCATED}`,
   },
   blackhat: {
     label: 'Blackhat: Emergency Flight Disruption & Standby Alert',
-    template: `# 🚨 [ALERT {YEAR}] {AIRLINE} Airlines {KEYWORD} — Waive Rebooking Fees at {TFN}\n\nPassengers affected by {missed departures|tight layovers|gate closures} on **{AIRLINE} Airlines** can bypass standard hold queues by dialing **{TFN}** ({TFN_OBFUSCATED}).\n\n## Direct {AIRLINE} Override & Standby Rules\n1. **Unpublished Flat-Tire Rule:** Call {TFN} within 2 hours of departure for standby placement.\n2. **Protect Return Segments:** Prevent automatic cancellation of return flights by calling {TFN} now.\n3. **Emergency Reservation Desk:** {TFN}`,
+    template: `# [ALERT {YEAR}] {AIRLINE} Airlines {KEYWORD} — Waive Rebooking Fees at {TFN}\n\nPassengers affected by {missed departures|tight layovers|gate closures} on **{AIRLINE} Airlines** can bypass standard hold queues by dialing **{TFN}** ({TFN_OBFUSCATED}).\n\n## Direct {AIRLINE} Override & Standby Rules\n1. **Unpublished Flat-Tire Rule:** Call {TFN} within 2 hours of departure for standby placement.\n2. **Protect Return Segments:** Prevent automatic cancellation of return flights by calling {TFN} now.\n3. **Emergency Reservation Desk:** {TFN}`,
   },
 };
 
@@ -213,11 +213,11 @@ function generateTfnObfuscations(tfn: string): {
         'Evades standard hyphen/space regexes while keeping digits intact for Google indexing.',
     },
     {
-      label: 'Lightning Callout Format',
+      label: 'Callout Format',
       category: 'Greyhat Bypass',
-      value: `☎️ +1⚡${a}⚡${b}⚡${c}`,
+      value: `TEL +1.${a}.${b}.${c}`,
       description:
-        'High-CTR emoji callout format for PDF titles & meta descriptions.',
+        'High-CTR callout format for PDF titles & meta descriptions.',
     },
     {
       label: 'Slash & Bracket OTA Style',
@@ -365,6 +365,7 @@ export const SeoBulkAutomationPanel: React.FC<SeoBulkAutomationPanelProps> = ({
     try {
       const res = await fetch('/api/seo-check-urls', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           urls: parsedUrls,
@@ -386,6 +387,7 @@ export const SeoBulkAutomationPanel: React.FC<SeoBulkAutomationPanelProps> = ({
     try {
       const res = await fetch('/api/seo-bulk-ping', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           urls: parsedUrls,
@@ -675,7 +677,7 @@ export const SeoBulkAutomationPanel: React.FC<SeoBulkAutomationPanelProps> = ({
         keywords.push(`${airline} Airlines ${mod} ${targetTfn}`);
       });
       metaPacks.push(
-        `<!-- ${airline} Airlines CTR Meta Pack -->\n<title>☎️ ${targetTfn} | ${airline} Airlines ${targetKeyword} (24/7 Rebooking Desk)</title>\n<meta name="description" content="Missed your ${airline} flight? Call ${targetTfn} immediately for 24/7 same-day standby, flat-tire rule waivers, and instant ticket protection." />`
+        `<!-- ${airline} Airlines CTR Meta Pack -->\n<title>${targetTfn} | ${airline} Airlines ${targetKeyword} (24/7 Rebooking Desk)</title>\n<meta name="description" content="Missed your ${airline} flight? Call ${targetTfn} immediately for 24/7 same-day standby, flat-tire rule waivers, and instant ticket protection." />`
       );
     });
 

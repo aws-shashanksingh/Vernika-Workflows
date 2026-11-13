@@ -97,126 +97,8 @@ export const N8nWorkflowModal: React.FC<N8nWorkflowModalProps> = ({
 
   const copySqlSchema = () => {
     void navigator.clipboard.writeText(
-      'Run supabase/vernika_platform.sql and supabase/schema.sql in the SQL editor for your new Vernika Supabase project. Do not enable public or anonymous table access.',
+      'Run supabase/vernika_complete_schema.sql in the SQL editor for your new Vernika Supabase project. Do not enable public or anonymous table access.',
     );
-    setCopiedSql(true);
-    setTimeout(() => setCopiedSql(false), 3000);
-    return;
-
-    const sql = `-- ==============================================================================
--- AUTOMATED-BLOGGER SQL SCHEMA FOR SUPABASE & N8N WORKFLOW
--- Run this in Supabase SQL Editor: https://supabase.com/dashboard/project/_/sql
--- ==============================================================================
-
--- 1. Table: requests (Primary queue watched by n8n)
-create table if not exists public.requests (
-  id text primary key default gen_random_uuid()::text,
-  user_id uuid,
-  company_name text not null default '',
-  company_email text not null default '',
-  company_website text not null default '',
-  blog_type text not null default 'airlines',
-  keyword text not null default '',
-  topic text not null default '',
-  tfn text not null default '',
-  tfn_number text not null default '',
-  airline_name text not null default '',
-  city text not null default 'Headquarters',
-  country text not null default 'United States',
-  status text not null default 'pending' check (status in ('pending', 'processing', 'completed', 'error')),
-  payload jsonb not null default '{}'::jsonb,
-  error_message text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
--- 2. Compatible alias tables: request & user_blog_requests & "User blog request"
-create table if not exists public.request (
-  id text primary key default gen_random_uuid()::text,
-  company_name text not null default '',
-  company_email text not null default '',
-  company_website text not null default '',
-  blog_type text not null default 'airlines',
-  keyword text not null default '',
-  topic text not null default '',
-  tfn text not null default '',
-  tfn_number text not null default '',
-  airline_name text not null default '',
-  city text not null default 'Headquarters',
-  country text not null default 'United States',
-  status text not null default 'pending',
-  payload jsonb not null default '{}'::jsonb,
-  created_at timestamptz not null default now()
-);
-
-create table if not exists public.user_blog_requests (
-  id text primary key default gen_random_uuid()::text,
-  company_name text not null default '',
-  blog_type text not null default 'airlines',
-  keyword text not null default '',
-  topic text not null default '',
-  tfn_number text not null default '',
-  airline_name text not null default '',
-  city text not null default 'Headquarters',
-  status text not null default 'pending',
-  payload jsonb not null default '{}'::jsonb,
-  created_at timestamptz not null default now()
-);
-
-create table if not exists public."User blog request" (
-  id text primary key default gen_random_uuid()::text,
-  company_name text not null default '',
-  blog_type text not null default 'airlines',
-  keyword text not null default '',
-  topic text not null default '',
-  tfn_number text not null default '',
-  airline_name text not null default '',
-  city text not null default 'Headquarters',
-  status text not null default 'pending',
-  payload jsonb not null default '{}'::jsonb,
-  created_at timestamptz not null default now()
-);
-
--- 3. Table: blogs (Destination where n8n returns the generated blog)
-create table if not exists public.blogs (
-  id uuid primary key default gen_random_uuid(),
-  request_id text,
-  blog_type text not null default 'airlines',
-  title text not null default '',
-  keyword text not null default '',
-  topic text not null default '',
-  content_html text not null default '',
-  html_content text not null default '',
-  content text not null default '',
-  banner_url text,
-  image_url text,
-  airline_name text not null default '',
-  city text not null default '',
-  status text not null default 'Draft',
-  metadata jsonb not null default '{}'::jsonb,
-  created_at timestamptz not null default now()
-);
-
--- 4. Enable RLS and restrict application data to the Vernika server
-alter table public.requests enable row level security;
-alter table public.request enable row level security;
-alter table public.user_blog_requests enable row level security;
-alter table public."User blog request" enable row level security;
-alter table public.blogs enable row level security;
-
-revoke all on table public.requests from anon, authenticated;
-revoke all on table public.request from anon, authenticated;
-revoke all on table public.user_blog_requests from anon, authenticated;
-revoke all on table public."User blog request" from anon, authenticated;
-revoke all on table public.blogs from anon, authenticated;
-
-grant all on table public.requests to service_role;
-grant all on table public.request to service_role;
-grant all on table public.user_blog_requests to service_role;
-grant all on table public."User blog request" to service_role;
-grant all on table public.blogs to service_role;`;
-
-    void navigator.clipboard.writeText(sql);
     setCopiedSql(true);
     setTimeout(() => setCopiedSql(false), 3000);
   };
@@ -265,7 +147,7 @@ grant all on table public.blogs to service_role;`;
             </div>
             <ol className={`list-decimal list-inside space-y-1.5 text-[11px] ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
               <li>
-                Clicking <strong className={isDarkMode ? 'text-violet-300' : 'text-violet-600'}>⚡ Run n8n Workflow</strong> clears previous rows and inserts <strong>exactly 1 pending row</strong> into Supabase table <code className={isDarkMode ? 'text-sky-300' : 'text-sky-700'}>requests</code>.
+                Clicking <strong className={isDarkMode ? 'text-violet-300' : 'text-violet-600'}>Run n8n Workflow</strong> clears previous rows and inserts <strong>exactly 1 pending row</strong> into Supabase table <code className={isDarkMode ? 'text-sky-300' : 'text-sky-700'}>requests</code>.
               </li>
               <li>
                 The app calls your n8n Webhook &amp; MCP endpoint. If n8n listens to database row changes on <code className={isDarkMode ? 'text-sky-300' : 'text-sky-700'}>status = 'pending'</code>, it triggers automatically!
@@ -378,7 +260,7 @@ grant all on table public.blogs to service_role;`;
               className="w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-violet-600/20 active:scale-[0.98]"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isTesting ? 'animate-spin' : ''}`} />
-              <span>{isTesting ? 'Testing all connections...' : '🔌 Test Connections Now'}</span>
+              <span>{isTesting ? 'Testing all connections...' : 'Test Connections Now'}</span>
             </button>
 
             {testResults && (
@@ -400,7 +282,7 @@ grant all on table public.blogs to service_role;`;
                   <span className={`px-2.5 py-0.5 rounded font-bold ${
                     testResults.supabaseOk ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
                   }`}>
-                    {testResults.supabaseOk ? '✅ Accessible' : '⚠️ Unverified'}
+                    {testResults.supabaseOk ? 'Accessible' : 'Unverified'}
                   </span>
                 </div>
 
@@ -415,7 +297,7 @@ grant all on table public.blogs to service_role;`;
                   <span className={`px-2.5 py-0.5 rounded font-bold ${
                     testResults.webhookOk ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
                   }`}>
-                    {testResults.webhookOk ? `✅ Connected (${testResults.webhookStatus || 200})` : `⚠️ ${testResults.webhookMessage || 'Check URL'}`}
+                    {testResults.webhookOk ? `Connected (${testResults.webhookStatus || 200})` : `${testResults.webhookMessage || 'Check URL'}`}
                   </span>
                 </div>
 
@@ -430,7 +312,7 @@ grant all on table public.blogs to service_role;`;
                   <span className={`px-2.5 py-0.5 rounded font-bold ${
                     testResults.mcpOk ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-sky-500/10 text-sky-600 dark:text-sky-400'
                   }`}>
-                    {testResults.mcpOk ? `✅ Responded (${testResults.mcpStatus || 200})` : `ℹ️ ${testResults.mcpMessage || 'HTTP JSON-RPC Ready'}`}
+                    {testResults.mcpOk ? `Responded (${testResults.mcpStatus || 200})` : `${testResults.mcpMessage || 'HTTP JSON-RPC Ready'}`}
                   </span>
                 </div>
               </div>
@@ -447,11 +329,11 @@ grant all on table public.blogs to service_role;`;
                 className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-lg shadow-sky-600/20"
               >
                 {copiedSql ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedSql ? 'Copied!' : 'Copy SQL Schema'}</span>
+                <span>{copiedSql ? 'Copied!' : 'Copy SQL Setup Note'}</span>
               </button>
             </div>
             <p className={`text-[11px] leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-              Paste this into your Supabase SQL Editor. It creates tables <code className={isDarkMode ? 'text-sky-300' : 'text-sky-700 font-bold'}>requests</code>, <code className={isDarkMode ? 'text-sky-300' : 'text-sky-700 font-bold'}>blogs</code>, etc., with full RLS and open permissions.
+              Run <code className={isDarkMode ? 'text-sky-300' : 'text-sky-700 font-bold'}>supabase/vernika_complete_schema.sql</code> in your Supabase SQL Editor. It creates <code className={isDarkMode ? 'text-sky-300' : 'text-sky-700 font-bold'}>requests</code>, <code className={isDarkMode ? 'text-sky-300' : 'text-sky-700 font-bold'}>blogs</code>, and shared platform tables with strict row-level security enabled.
             </p>
           </div>
 

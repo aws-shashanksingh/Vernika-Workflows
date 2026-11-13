@@ -124,7 +124,7 @@ async function getWorkspaceConfig(): Promise<GlobalWorkspaceConfig> {
       credentials: { ...base.credentials, ...(config.credentials || {}), ...adminCredentials },
       ...(adminGitHubToken ? { githubToken: adminGitHubToken } : {}),
     };
-    workspaceConfigCache.set(cacheKey, { config: loaded, expiresAt: Date.now() + 30_000 });
+    workspaceConfigCache.set(cacheKey, { config: loaded, expiresAt: Date.now() + 3_000 });
     return loaded;
   }
 
@@ -133,7 +133,7 @@ async function getWorkspaceConfig(): Promise<GlobalWorkspaceConfig> {
     credentials: { ...base.credentials, ...adminCredentials },
     ...(adminGitHubToken ? { githubToken: adminGitHubToken } : {}),
   };
-  workspaceConfigCache.set(cacheKey, { config: loaded, expiresAt: Date.now() + 30_000 });
+  workspaceConfigCache.set(cacheKey, { config: loaded, expiresAt: Date.now() + 3_000 });
   return loaded;
 }
 
@@ -182,7 +182,7 @@ async function saveWorkspaceConfig(
       : current.credentials,
     updatedAt: Date.now(),
   };
-  workspaceConfigCache.set(cacheKey, { config: next, expiresAt: Date.now() + 30_000 });
+  workspaceConfigCache.set(cacheKey, { config: next, expiresAt: Date.now() + 3_000 });
   if (userId) {
     await saveStoredCredential(userId, 'seo-pdf', 'workspace-config', JSON.stringify(next));
   }
@@ -986,7 +986,7 @@ function buildFlexibleTfnRegex(tfn: string): RegExp | null {
     const p2 = core.slice(3, 6);
     const p3a = core.slice(6, 8);
     const p3b = core.slice(8, 10);
-    const sep = `[-–—\\s._/•⚡*→~()\\[\\]{}+]{0,6}`;
+    const sep = `[-–—\\s._/*→~()\\[\\]{}+]{0,6}`;
     return new RegExp(
       `(?:\\+?1${sep})?[(\\[{]*${p1}[)\\]}]*${sep}${p2}${sep}${p3a}${sep}${p3b}`,
       'gi'

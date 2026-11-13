@@ -238,13 +238,13 @@ export function generateFlightSvgBanner(airline: string, title: string, category
     
     <!-- Subtitle Bullet Points -->
     <text x="90" y="380" fill="#cbd5e1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22">
-      ✓ Step-by-Step Instructions &amp; Policy Rules
+      - Step-by-Step Instructions &amp; Policy Rules
     </text>
     <text x="90" y="420" fill="#cbd5e1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22">
-      ✓ Direct Customer Service Phone &amp; Email Channels
+      - Direct Customer Service Phone &amp; Email Channels
     </text>
     <text x="90" y="460" fill="#cbd5e1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22">
-      ✓ Verified Passenger FAQ &amp; Settlement Rights
+      - Verified Passenger FAQ &amp; Settlement Rights
     </text>
 
     <!-- Bottom Brand Footer -->

@@ -1,6 +1,0 @@
-{
-  "name": "Automated-Blogger",
-  "description": "Automated-Blogger is an intelligent content publishing platform that generates, schedules, and publishes SEO-optimized articles directly to Google Blogger.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

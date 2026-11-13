@@ -124,7 +124,7 @@ export const LinkConcatenatorPanel: React.FC<LinkConcatenatorPanelProps> = ({
 
   // Pull globally saved Google Sheet configuration on mount so Mac & Phone stay in sync
   useEffect(() => {
-    fetch('/api/workspace-config')
+    fetch('/api/workspace-config', { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : null))
       .then((cfg) => {
         if (cfg && cfg.updatedAt > 0) {
@@ -209,6 +209,7 @@ export const LinkConcatenatorPanel: React.FC<LinkConcatenatorPanelProps> = ({
     try {
       const res = await fetch('/api/check-google-sheet', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           credentials,
@@ -251,6 +252,7 @@ export const LinkConcatenatorPanel: React.FC<LinkConcatenatorPanelProps> = ({
     try {
       await fetch('/api/workspace-config', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           googleSheetUrl: sheetUrlInput.trim() || DEFAULT_GOOGLE_SHEET_URL,
@@ -500,6 +502,7 @@ export const LinkConcatenatorPanel: React.FC<LinkConcatenatorPanelProps> = ({
     try {
       const response = await fetch('/api/sync-google-sheet', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           credentials,

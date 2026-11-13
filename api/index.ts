@@ -568,7 +568,8 @@ app.post(['/api/status', '/status'], async (req, res) => {
     code: result.code,
     hasEnvId: !!process.env.GOOGLE_CLIENT_ID,
     hasEnvToken: !!process.env.GOOGLE_REFRESH_TOKEN,
-    hasDeepSeek: !!process.env.DEEPSEEK_API_KEY
+    hasDeepSeek: !!process.env.DEEPSEEK_API_KEY,
+    hasGemini: !!(process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY)
   });
 });
 

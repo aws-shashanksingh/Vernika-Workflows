@@ -15,6 +15,7 @@ import {
   ExternalLink,
   Edit3,
   FileCheck,
+  X,
 } from 'lucide-react';
 import { ServiceAccount } from '../lib/types';
 import { apiFetch, safeJsonParse } from '../lib/api';
@@ -38,7 +39,7 @@ export const ServiceAccountsPanel: React.FC<ServiceAccountsPanelProps> = ({
   const [testingId, setTestingId] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<{ id: string; success: boolean; message: string; details?: any } | null>(null);
   const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
-  const [seeding, setSeeding] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Edit / Reupload Modal State
@@ -159,10 +160,10 @@ export const ServiceAccountsPanel: React.FC<ServiceAccountsPanelProps> = ({
   };
 
   const deleteAccount = async (id: string) => {
-    if (!confirm('Are you sure you want to remove this service account?')) return;
     try {
       const res = await apiFetch(`/api/accounts/${id}`, { method: 'DELETE' });
       if (res.ok) {
+        setConfirmDeleteId(null);
         onRefresh();
       }
     } catch (err) {
@@ -320,7 +321,7 @@ export const ServiceAccountsPanel: React.FC<ServiceAccountsPanelProps> = ({
             value={rawJsonText}
             onChange={(e) => setRawJsonText(e.target.value)}
             rows={5}
-            placeholder={`{\n  "type": "service_account",\n  "project_id": "seo-automation-503206",\n  "private_key": "-----BEGIN PRIVATE KEY-----\\n...",\n  "client_email": "seo-automation@seo-automation-503206.iam.gserviceaccount.com"\n}`}
+            placeholder={`{\n  "type": "service_account",\n  "project_id": "your-gcp-project-id",\n  "private_key": "-----BEGIN PRIVATE KEY-----\\n...",\n  "client_email": "your-service-account@your-project.iam.gserviceaccount.com"\n}`}
             className="w-full bg-neutral-900 border border-neutral-800 rounded-xl p-3 text-xs font-mono text-emerald-300 placeholder-neutral-600 focus:outline-none focus:border-emerald-500"
           />
           <div className="flex justify-end gap-2">
@@ -390,9 +391,10 @@ export const ServiceAccountsPanel: React.FC<ServiceAccountsPanelProps> = ({
           </div>
           <button
             onClick={() => setTestResult(null)}
+            aria-label="Close test result"
             className="text-neutral-400 hover:text-white text-xs cursor-pointer"
           >
-            ✕
+            <X className="w-4 h-4" />
           </button>
         </div>
       )}
@@ -544,13 +546,30 @@ export const ServiceAccountsPanel: React.FC<ServiceAccountsPanelProps> = ({
                     </button>
 
                     {/* Delete */}
-                    <button
-                      onClick={() => deleteAccount(acc.id)}
-                      className="p-1.5 rounded-lg text-neutral-500 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
-                      title="Delete account"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {confirmDeleteId === acc.id ? (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => deleteAccount(acc.id)}
+                          className="px-2 py-1 rounded-lg bg-red-600 hover:bg-red-500 text-white text-[11px] font-semibold cursor-pointer"
+                        >
+                          Confirm
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="px-2 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-[11px] cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDeleteId(acc.id)}
+                        className="p-1.5 rounded-lg text-neutral-500 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                        title="Delete account"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -570,9 +589,10 @@ export const ServiceAccountsPanel: React.FC<ServiceAccountsPanelProps> = ({
               </h3>
               <button
                 onClick={() => setEditingAccount(null)}
+                aria-label="Close edit account modal"
                 className="text-neutral-400 hover:text-white text-sm cursor-pointer"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -678,7 +698,7 @@ export const ServiceAccountsPanel: React.FC<ServiceAccountsPanelProps> = ({
         <div className="text-xs text-neutral-400 leading-relaxed">
           <strong className="text-neutral-200">Where Does Google Index Your Links?</strong>
           <span className="block mt-0.5">
-            Your service account email (<code>seo-automation@seo-automation-503206.iam.gserviceaccount.com</code>) pushes requests directly to the <strong>Google Indexing API</strong>. Once Googlebot crawls the page, it reflects in the global Google Search index!
+            Your service account email (<code>your-service-account@your-project.iam.gserviceaccount.com</code>) pushes requests directly to the <strong>Google Indexing API</strong>. Once Googlebot crawls the page, it reflects in the global Google Search index!
             Make sure this email is added as an <strong>Owner</strong> in Google Search Console for your website property (e.g. <code>https://yourwebsite.com/</code>).
           </span>
         </div>

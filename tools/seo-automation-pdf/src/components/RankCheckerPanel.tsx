@@ -111,7 +111,7 @@ function highlightTfnInText(text: string, tfn: string): React.ReactNode {
     const p2 = core.slice(3, 6);
     const p3a = core.slice(6, 8);
     const p3b = core.slice(8, 10);
-    const sep = `[-–—\\s._/•⚡*→~()\\[\\]{}+]{0,6}`;
+    const sep = `[-–—\\s._/•*→~()\\[\\]{}+]{0,6}`;
     regex = new RegExp(
       `((?:\\+?1${sep})?[(\\[{]*${p1}[)\\]}]*${sep}${p2}${sep}${p3a}${sep}${p3b}|(?:\\+?1)?${core})`,
       'gi'
@@ -263,6 +263,7 @@ export const RankCheckerPanel: React.FC = () => {
     try {
       const res = await fetch('/api/check-rank-usa', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           airline,
@@ -288,11 +289,11 @@ export const RankCheckerPanel: React.FC = () => {
         setScanResults((prev) => ({ ...prev, [airline]: record }));
         if (record.found) {
           addLog(
-            `✅ [PAGE 1 HIT] ${airline} — TFN (${tfn}) FOUND in ${record.matchCount} result(s) on Page 1!`
+            `[PAGE 1 HIT] ${airline} — TFN (${tfn}) FOUND in ${record.matchCount} result(s) on Page 1!`
           );
         } else {
           addLog(
-            `❌ [PAGE 1 MISS] ${airline} — TFN (${tfn}) NOT found on Page 1.`
+            `[PAGE 1 MISS] ${airline} — TFN (${tfn}) NOT found on Page 1.`
           );
         }
         if (openModalAfter) {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Database, Copy, Check, ExternalLink, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Database, Copy, Check, ExternalLink, RefreshCw, AlertCircle, CheckCircle2, X } from 'lucide-react';
 import { SystemStatus } from '../lib/types';
 import { safeJsonParse } from '../lib/api';
 
@@ -81,9 +81,10 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close Supabase setup modal"
             className="text-neutral-400 hover:text-white text-sm cursor-pointer p-1"
           >
-            ✕
+            <X className="w-4 h-4" />
           </button>
         </div>
 

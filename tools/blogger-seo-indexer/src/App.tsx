@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { AlertTriangle, X } from 'lucide-react';
 import { AuthGate } from './components/AuthGate';
 import { Header } from './components/Header';
 import { StatsCards } from './components/StatsCards';
@@ -7,7 +8,7 @@ import { ServiceAccountsPanel } from './components/ServiceAccountsPanel';
 import { LogsTable } from './components/LogsTable';
 import { IndexVerifierPanel } from './components/IndexVerifierPanel';
 import { ServiceAccount, UrlLog, SystemStatus } from './lib/types';
-import { apiFetch, clearAuthToken, getAuthToken, safeJsonParse } from './lib/api';
+import { apiFetch, clearAuthToken, safeJsonParse } from './lib/api';
 
 // Inactivity timeout: 10 minutes of no user interaction
 const INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000;
@@ -17,6 +18,7 @@ export default function App() {
   const [lockNotice, setLockNotice] = useState<string | null>(null);
   const [profileName, setProfileName] = useState('');
   const [accountExpiresAt, setAccountExpiresAt] = useState<string | null>(null);
+  const [expiryModalDismissed, setExpiryModalDismissed] = useState(false);
   const [status, setStatus] = useState<SystemStatus | null>(null);
   const [accounts, setAccounts] = useState<ServiceAccount[]>([]);
   const [logs, setLogs] = useState<UrlLog[]>([]);
@@ -28,14 +30,7 @@ export default function App() {
   const lastActivityRef = useRef<number>(Date.now());
   const inactivityTimerRef = useRef<any>(null);
 
-  // Check initial session from sessionStorage
   const checkSession = useCallback(async () => {
-    const token = getAuthToken();
-    if (!token) {
-      setIsAuthenticated(false);
-      return;
-    }
-
     try {
       const res = await apiFetch('/api/access/session');
       const data = await safeJsonParse(res);
@@ -244,10 +239,37 @@ export default function App() {
       {/* Footer */}
       <footer className="border-t border-neutral-800/80 bg-neutral-950 py-4 text-center text-xs text-neutral-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>SEO INDEXER • Multi-Account Google URL Indexing & Automated 429 Quota Rotation</span>
+          <span>SEO INDEXER • Multi-Account Google URL Indexing &amp; Automated 429 Quota Rotation</span>
           <span className="font-mono text-[11px] text-neutral-400">PostgreSQL Backend Active</span>
         </div>
       </footer>
+
+      {accountExpiresAt && !expiryModalDismissed && (() => {
+        const msLeft = Date.parse(accountExpiresAt) - Date.now();
+        return msLeft > 0 && msLeft <= 2 * 24 * 60 * 60 * 1000;
+      })() && (
+        <div role="dialog" aria-modal="true" aria-labelledby="indexer-expiry-title" className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-amber-700/60 bg-neutral-900 p-5 text-neutral-100 shadow-2xl">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2 text-amber-400">
+                <AlertTriangle className="h-5 w-5 shrink-0" />
+                <h3 id="indexer-expiry-title" className="text-sm font-bold">Subscription Expiring Soon</h3>
+              </div>
+              <button type="button" onClick={() => setExpiryModalDismissed(true)} aria-label="Dismiss expiry reminder" className="rounded-lg p-1 text-neutral-400 hover:bg-neutral-800 hover:text-white">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="mt-3 text-xs leading-relaxed text-neutral-300">
+              Your Vernika Workflows access expires on <strong>{new Date(accountExpiresAt).toLocaleString()}</strong> (within 2 days). Please contact your administrator to renew access.
+            </p>
+            <div className="mt-4 flex justify-end">
+              <button type="button" onClick={() => setExpiryModalDismissed(true)} className="rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-neutral-950 hover:bg-amber-400">
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

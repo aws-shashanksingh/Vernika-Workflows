@@ -49,7 +49,7 @@ export const DEFAULT_MASTER_TEMPLATES: MasterTemplate[] = [
       Need immediate assistance with {{airline}} flight reservations, date adjustments, or missed connections?
     </p>
     <a href="tel:{{tfnNumber}}" style="display: inline-block; background: #ffffff; color: #0284c7; padding: 12px 28px; font-size: 20px; font-weight: 900; text-decoration: none; border-radius: 50px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-      📞 Call Toll-Free: {{tfnNumber}}
+      Call Toll-Free: {{tfnNumber}}
     </a>
   </div>
 
@@ -62,11 +62,11 @@ export const DEFAULT_MASTER_TEMPLATES: MasterTemplate[] = [
   </ul>
 
   <div style="background: #f8fafc; padding: 20px; border-radius: 10px; margin: 28px 0; border: 1px solid #e2e8f0; text-align: center;">
-    <strong style="color: #0f172a; display: block; margin-bottom: 12px; font-size: 15px;">🌐 Official Portals &amp; Consumer Protection Resources:</strong>
+    <strong style="color: #0f172a; display: block; margin-bottom: 12px; font-size: 15px;">Official Portals &amp; Consumer Protection Resources:</strong>
     <div style="line-height: 2.6;">
-      <a href="https://www.transportation.gov/airconsumer/file-consumer-complaint" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin: 4px 6px; padding: 8px 16px; background: #1e3a8a; color: #ffffff; text-decoration: none; border-radius: 20px; font-size: 12px; font-weight: bold;">⚖️ US DOT Consumer Protection</a>
-      <a href="https://www.transportation.gov/airconsumer/fly-rights" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin: 4px 6px; padding: 8px 16px; background: #0369a1; color: #ffffff; text-decoration: none; border-radius: 20px; font-size: 12px; font-weight: bold;">📜 US DOT Fly Rights</a>
-      <a href="https://automated-blogger-one.vercel.app" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin: 4px 6px; padding: 8px 16px; background: #334155; color: #ffffff; text-decoration: none; border-radius: 20px; font-size: 12px; font-weight: bold;">🛡️ Platform Directory</a>
+      <a href="https://www.transportation.gov/airconsumer/file-consumer-complaint" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin: 4px 6px; padding: 8px 16px; background: #1e3a8a; color: #ffffff; text-decoration: none; border-radius: 20px; font-size: 12px; font-weight: bold;">US DOT Consumer Protection</a>
+      <a href="https://www.transportation.gov/airconsumer/fly-rights" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin: 4px 6px; padding: 8px 16px; background: #0369a1; color: #ffffff; text-decoration: none; border-radius: 20px; font-size: 12px; font-weight: bold;">US DOT Fly Rights</a>
+      <a href="https://automated-blogger-one.vercel.app" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin: 4px 6px; padding: 8px 16px; background: #334155; color: #ffffff; text-decoration: none; border-radius: 20px; font-size: 12px; font-weight: bold;">Platform Directory</a>
     </div>
   </div>
 
@@ -109,7 +109,7 @@ export const DEFAULT_MASTER_TEMPLATES: MasterTemplate[] = [
       Flight delayed more than 3 hours? Contact the passenger rights desk for alternative flights:
     </p>
     <a href="tel:{{tfnNumber}}" style="display: inline-block; background: #ffffff; color: #0f766e; padding: 12px 28px; font-size: 20px; font-weight: 900; text-decoration: none; border-radius: 50px;">
-      📞 Call: {{tfnNumber}}
+      Call: {{tfnNumber}}
     </a>
   </div>
 
@@ -142,7 +142,7 @@ export const DEFAULT_MASTER_TEMPLATES: MasterTemplate[] = [
   <div style="background: #1e293b; color: #ffffff; padding: 20px; border-radius: 12px; text-align: center; margin: 24px 0;">
     <p style="font-size: 14px; margin-bottom: 12px;">Need help tracking your PIR report or filing for essential item reimbursement?</p>
     <a href="tel:{{tfnNumber}}" style="display: inline-block; background: #38bdf8; color: #0f172a; padding: 10px 24px; font-weight: bold; text-decoration: none; border-radius: 30px;">
-      📞 Call Baggage Helpline: {{tfnNumber}}
+      Call Baggage Helpline: {{tfnNumber}}
     </a>
   </div>
 </div>`
@@ -163,7 +163,7 @@ export const DEFAULT_MASTER_TEMPLATES: MasterTemplate[] = [
   </p>
   <div style="background: #0284c7; color: #ffffff; padding: 20px; border-radius: 12px; text-align: center; margin: 24px 0;">
     <a href="tel:{{tfnNumber}}" style="display: inline-block; background: #ffffff; color: #0284c7; padding: 12px 28px; font-weight: 900; text-decoration: none; border-radius: 30px;">
-      📞 Speak with a Travel Specialist: {{tfnNumber}}
+      Speak with a Travel Specialist: {{tfnNumber}}
     </a>
   </div>
 </div>`
@@ -184,7 +184,7 @@ export const DEFAULT_MASTER_TEMPLATES: MasterTemplate[] = [
   </p>
   <div style="background: #059669; color: #ffffff; padding: 20px; border-radius: 12px; text-align: center; margin: 24px 0;">
     <a href="tel:{{tfnNumber}}" style="display: inline-block; background: #ffffff; color: #059669; padding: 12px 28px; font-weight: 900; text-decoration: none; border-radius: 30px;">
-      📞 Call Hotel Desk: {{tfnNumber}}
+      Call Hotel Desk: {{tfnNumber}}
     </a>
   </div>
 </div>`
@@ -205,7 +205,7 @@ export const DEFAULT_MASTER_TEMPLATES: MasterTemplate[] = [
   </p>
   <div style="background: #4f46e5; color: #ffffff; padding: 20px; border-radius: 12px; text-align: center; margin: 24px 0;">
     <a href="tel:{{tfnNumber}}" style="display: inline-block; background: #ffffff; color: #4f46e5; padding: 12px 28px; font-weight: 900; text-decoration: none; border-radius: 30px;">
-      📞 Call Priority Concierge: {{tfnNumber}}
+      Call Priority Concierge: {{tfnNumber}}
     </a>
   </div>
 </div>`

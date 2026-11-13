@@ -11,7 +11,8 @@ import {
   Check, 
   Sparkles, 
   ExternalLink,
-  Search
+  Search,
+  X
 } from 'lucide-react';
 import { GeneratedPost, BloggerSubSettings } from '../types/airline';
 import { getCoordinatesForCity } from '../data/cityCoordinates';
@@ -145,10 +146,11 @@ export const BloggerSubSettingsTab: React.FC<BloggerSubSettingsTabProps> = ({
               <button
                 type="button"
                 onClick={() => handleRemoveLabel(lbl)}
+                aria-label="Remove label"
                 className="hover:text-rose-500 ml-0.5 text-xs font-bold"
                 title="Remove label"
               >
-                ✕
+                <X className="w-3 h-3" />
               </button>
             </span>
           ))}
@@ -433,7 +435,7 @@ export const BloggerSubSettingsTab: React.FC<BloggerSubSettingsTabProps> = ({
         
         <div className="space-y-2">
           <div className="flex items-center justify-between p-2 rounded-lg border bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-[11px]">
-            <span className="font-semibold">⚖️ US DOT Official Complaint Portal:</span>
+            <span className="font-semibold">US DOT Official Complaint Portal:</span>
             <a
               href={settings.authorityLinks.dotComplaintUrl}
               target="_blank"
@@ -445,7 +447,7 @@ export const BloggerSubSettingsTab: React.FC<BloggerSubSettingsTabProps> = ({
           </div>
 
           <div className="flex items-center justify-between p-2 rounded-lg border bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-[11px]">
-            <span className="font-semibold">✈️ EasyFlightConnect Blog Directory:</span>
+            <span className="font-semibold">EasyFlightConnect Blog Directory:</span>
             <a
               href={settings.authorityLinks.internalDirectoryUrl}
               target="_blank"
@@ -457,7 +459,7 @@ export const BloggerSubSettingsTab: React.FC<BloggerSubSettingsTabProps> = ({
           </div>
 
           <div className="flex items-center justify-between p-2 rounded-lg border bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-[11px]">
-            <span className="font-semibold">📞 Dedicated Toll-Free Hotline:</span>
+            <span className="font-semibold">Dedicated Toll-Free Hotline:</span>
             <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono">
               tel:{post.tfnNumber}
             </span>

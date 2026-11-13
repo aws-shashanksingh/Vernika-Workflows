@@ -8,21 +8,10 @@ interface PublicLandingPageProps {
   onToggleTheme: () => void;
 }
 
-const plans = [
-  { name: 'The Solo Plan', price: 59, tagline: 'Completely Unlocked Dedicated Workspace', features: ['Unlimited manual blog generation', 'Custom publishing setup', 'A uniquely published app for your business'] },
-  { name: 'The Basic Plan', price: 16, tagline: 'Fast, Efficient Growth Automation', features: ['Shared workspace experience', 'Clear daily and monthly limits', 'Scheduled publishing for consistent growth'] },
-  { name: 'The Professional Plan', price: 29, tagline: 'High-Performance Scaled Authority', features: ['Independent published app deployment', 'High-volume content allowances', 'Background publishing engines'] }
-];
-
 export const PublicLandingPage: React.FC<PublicLandingPageProps> = ({ onOpenDashboard, isDarkMode, onToggleTheme }) => {
   const [page, setPage] = useState<'home' | 'privacy' | 'terms'>('home');
   const surface = isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200';
   const muted = isDarkMode ? 'text-slate-300' : 'text-slate-600';
-  
-  const subscribe = (plan: typeof plans[number]) => {
-    const message = `Hi, I'd like to subscribe to the ${plan.name} plan ($${plan.price}/month) for Automated-Blogger.`;
-    window.open(`https://wa.me/916391059119?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
-  };
 
   return (
     <div className={`min-h-screen font-sans selection:bg-sky-100 transition-colors ${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
@@ -197,7 +186,7 @@ export const PublicLandingPage: React.FC<PublicLandingPageProps> = ({ onOpenDash
                   <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" /> <span>Reduce workload to seconds</span></li>
                   <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" /> <span>Cut down headcount costs</span></li>
                 </ul>
-                <button onClick={() => window.open(`https://wa.me/916391059119?text=${encodeURIComponent("Hi, I'd like to subscribe to the AUTOMATED-BLOGGER plan ($59/month)")}`, '_blank', 'noopener,noreferrer')} className="w-full py-4 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-sm font-black uppercase tracking-widest hover:opacity-90 transition shadow-lg active:scale-95">Select Plan</button>
+                <a href={`https://wa.me/916391059119?text=${encodeURIComponent("Hi, I'd like to subscribe to the AUTOMATED-BLOGGER plan ($59/month)")}`} target="_blank" rel="noopener noreferrer" className="block w-full text-center py-4 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-sm font-black uppercase tracking-widest hover:opacity-90 transition shadow-lg active:scale-95">Select Plan</a>
               </article>
               <article className={`flex flex-col rounded-3xl border p-8 transition-all hover:shadow-2xl ${surface}`}>
                 <h3 className="text-xl font-black">BLOGGER-INDEXER</h3>
@@ -205,11 +194,11 @@ export const PublicLandingPage: React.FC<PublicLandingPageProps> = ({ onOpenDash
                 <p className="mt-6 text-5xl font-black">$21<span className="text-sm font-bold opacity-40">/mo</span></p>
                 <a href="/indexer/" className="mt-4 text-[11px] font-bold text-sky-500 hover:underline">Open integrated Indexer →</a>
                 <ul className={`my-8 flex-1 space-y-4 text-sm font-medium ${muted}`}>
-                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" /> <span>Bulk indexing into Google & Bing</span></li>
+                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" /> <span>Bulk indexing into Google &amp; Bing</span></li>
                   <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" /> <span>Complete automation for speed</span></li>
                   <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" /> <span>1-person job capacity</span></li>
                 </ul>
-                <button onClick={() => window.open(`https://wa.me/916391059119?text=${encodeURIComponent("Hi, I'd like to subscribe to the BLOGGER-INDEXER plan ($21/month)")}`, '_blank', 'noopener,noreferrer')} className="w-full py-4 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-sm font-black uppercase tracking-widest hover:opacity-90 transition shadow-lg active:scale-95">Select Plan</button>
+                <a href={`https://wa.me/916391059119?text=${encodeURIComponent("Hi, I'd like to subscribe to the BLOGGER-INDEXER plan ($21/month)")}`} target="_blank" rel="noopener noreferrer" className="block w-full text-center py-4 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-sm font-black uppercase tracking-widest hover:opacity-90 transition shadow-lg active:scale-95">Select Plan</a>
               </article>
               <article className={`flex flex-col rounded-3xl border p-8 transition-all hover:shadow-2xl ${surface}`}>
                 <h3 className="text-xl font-black">BlackHat - AUTOMATOR</h3>
@@ -221,7 +210,7 @@ export const PublicLandingPage: React.FC<PublicLandingPageProps> = ({ onOpenDash
                   <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" /> <span>Template-based mass generation</span></li>
                   <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" /> <span>Scale agency from 10 to 1 person</span></li>
                 </ul>
-                <button onClick={() => window.open(`https://wa.me/916391059119?text=${encodeURIComponent("Hi, I'd like to subscribe to the BlackHat - AUTOMATOR plan ($111/month)")}`, '_blank', 'noopener,noreferrer')} className="w-full py-4 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-sm font-black uppercase tracking-widest hover:opacity-90 transition shadow-lg active:scale-95">Select Plan</button>
+                <a href={`https://wa.me/916391059119?text=${encodeURIComponent("Hi, I'd like to subscribe to the BlackHat - AUTOMATOR plan ($111/month)")}`} target="_blank" rel="noopener noreferrer" className="block w-full text-center py-4 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-sm font-black uppercase tracking-widest hover:opacity-90 transition shadow-lg active:scale-95">Select Plan</a>
               </article>
             </div>
           </section>

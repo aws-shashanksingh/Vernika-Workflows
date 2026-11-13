@@ -10,6 +10,7 @@ import {
   XCircle,
   AlertTriangle,
   Info,
+  X,
 } from 'lucide-react';
 import { UrlLog } from '../lib/types';
 import { apiFetch } from '../lib/api';
@@ -35,13 +36,14 @@ export const LogsTable: React.FC<LogsTableProps> = ({
 }) => {
   const [selectedLog, setSelectedLog] = useState<UrlLog | null>(null);
   const [clearing, setClearing] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const handleClearLogs = async () => {
-    if (!confirm('Are you sure you want to clear all URL indexing history?')) return;
     setClearing(true);
     try {
       const res = await apiFetch('/api/logs', { method: 'DELETE' });
       if (res.ok) {
+        setConfirmClear(false);
         onRefresh();
       }
     } catch (err) {
@@ -115,14 +117,32 @@ export const LogsTable: React.FC<LogsTableProps> = ({
           </button>
 
           {/* Clear Logs */}
-          <button
-            onClick={handleClearLogs}
-            disabled={clearing || logs.length === 0}
-            className="p-1.5 rounded-xl bg-neutral-800 hover:bg-red-500/20 text-neutral-400 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-40"
-            title="Clear logs"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          {confirmClear ? (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handleClearLogs}
+                disabled={clearing}
+                className="px-2.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-xs font-semibold text-white cursor-pointer disabled:opacity-50"
+              >
+                {clearing ? 'Clearing...' : 'Confirm Clear'}
+              </button>
+              <button
+                onClick={() => setConfirmClear(false)}
+                className="px-2.5 py-1.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-xs text-neutral-300 cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmClear(true)}
+              disabled={clearing || logs.length === 0}
+              className="p-1.5 rounded-xl bg-neutral-800 hover:bg-red-500/20 text-neutral-400 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-40"
+              title="Clear logs"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
 
           {/* Refresh */}
           <button
@@ -274,9 +294,10 @@ export const LogsTable: React.FC<LogsTableProps> = ({
               </h3>
               <button
                 onClick={() => setSelectedLog(null)}
+                aria-label="Close log details"
                 className="text-neutral-400 hover:text-white text-sm cursor-pointer"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -324,7 +345,9 @@ export const LogsTable: React.FC<LogsTableProps> = ({
                         Even if the service account is added in Google Search Console, Google Cloud blocks all requests until the Web Search Indexing API is enabled for this project.
                       </p>
                       <a
-                        href={`https://console.developers.google.com/apis/api/indexing.googleapis.com/overview?project=${selectedLog.used_project_name || 'seo-automation-503206'}`}
+                        href={selectedLog.used_project_name
+                          ? `https://console.developers.google.com/apis/api/indexing.googleapis.com/overview?project=${selectedLog.used_project_name}`
+                          : 'https://console.developers.google.com/apis/library/indexing.googleapis.com'}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold text-xs transition-colors"

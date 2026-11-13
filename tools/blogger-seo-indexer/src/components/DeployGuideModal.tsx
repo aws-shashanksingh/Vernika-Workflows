@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Rocket, Copy, Check, FileCode, CheckCircle2, ChevronRight, Layers, Shield, Database } from 'lucide-react';
+import { Rocket, Copy, Check, FileCode, CheckCircle2, ChevronRight, Layers, Shield, Database, X } from 'lucide-react';
 
 interface DeployGuideModalProps {
   isOpen: boolean;
@@ -218,8 +218,8 @@ DAILY_QUOTA_PER_ACCOUNT="200"`,
               <p className="text-xs text-neutral-400">Complete source code & architecture for standalone Vercel hosting</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-neutral-400 hover:text-white text-sm cursor-pointer p-1">
-            ✕
+          <button onClick={onClose} aria-label="Close deployment guide" className="text-neutral-400 hover:text-white text-sm cursor-pointer p-1">
+            <X className="w-4 h-4" />
           </button>
         </div>
 

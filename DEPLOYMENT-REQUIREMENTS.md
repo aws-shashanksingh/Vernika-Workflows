@@ -8,7 +8,7 @@ Set these in the Vercel project's **Settings → Environment Variables** for Pro
 | --- | --- |
 | `SUPABASE_URL` | Project URL from Supabase **Project Settings → API** |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-side service-role key for that Supabase project. Keep it private; never use a `VITE_` name. The server also accepts Supabase's newer `SUPABASE_SECRET_KEY` variable if that is what the Vercel integration provides. |
-| `ADMIN_USERNAME` | Username you choose for the Vernika administrator, for example `vernika-admin` |
+| `ADMIN_USERNAME` | Administrator login username (defaults to `rajputs` if unset, or set a custom username) |
 | `ADMIN_PASSWORD` | A unique, strong password you choose |
 | `ADMIN_OTP` | Your administrator's numeric OTP, 6–10 digits |
 | `SESSION_SECRET` | Random signing secret, at least 32 characters |

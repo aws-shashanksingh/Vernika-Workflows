@@ -370,7 +370,7 @@ async function parseDocxIntoBlocks(docxBytes: Uint8Array): Promise<PdfDocBlock[]
 
 /**
  * High-Fidelity Browser-Native DOM/Canvas Replica Engine:
- * Renders DOCX with exact fonts, exact colors, all emojis (✈️, 📞, etc.),
+ * Renders DOCX with exact fonts, exact colors, standard symbol glyphs,
  * exact tables, headers, footers, and margins without unnecessary whitespace.
  */
 async function renderDocxToPdfViaDom(docxBytes: Uint8Array): Promise<Uint8Array | null> {

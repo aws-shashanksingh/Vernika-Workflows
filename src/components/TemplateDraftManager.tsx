@@ -80,6 +80,7 @@ export const TemplateDraftManager: React.FC<TemplateDraftManagerProps> = ({
   const [editorDescription, setEditorDescription] = useState('');
   const [editorHtml, setEditorHtml] = useState('');
   const [notification, setNotification] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Non-Technical Form Builder State
   const [formBannerUrl, setFormBannerUrl] = useState('');
@@ -263,9 +264,10 @@ export const TemplateDraftManager: React.FC<TemplateDraftManagerProps> = ({
 
   const handleSaveEditor = () => {
     if (!editorName.trim()) {
-      alert('Please enter a template name.');
+      setErrorMsg('Please enter a template name.');
       return;
     }
+    setErrorMsg(null);
 
     const finalHtml = editorMode === 'form' ? compileFormToHtml() : editorHtml;
 
@@ -338,6 +340,13 @@ export const TemplateDraftManager: React.FC<TemplateDraftManagerProps> = ({
           )}
         </div>
       </div>
+
+      {errorMsg && (
+        <div role="alert" className="p-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-500 text-xs flex items-center justify-between gap-2">
+          <span>{errorMsg}</span>
+          <button type="button" onClick={() => setErrorMsg(null)} className="font-bold hover:underline">Dismiss</button>
+        </div>
+      )}
 
       {notification && (
         <div className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs flex items-center gap-2 animate-in slide-in-from-top-1">

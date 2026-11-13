@@ -83,13 +83,13 @@ export function generateOfficeBannerSvg(
       
       <g transform="translate(80, 360)">
         <text x="0" y="0" fill="#1e293b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="600">
-          ✓ Airport Terminal Desks, Check-In Windows &amp; Hours
+          - Airport Terminal Desks, Check-In Windows &amp; Hours
         </text>
         <text x="0" y="38" fill="#1e293b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="600">
-          ✓ Flight Reservations, Ticket Rebooking &amp; Schedule Updates
+          - Flight Reservations, Ticket Rebooking &amp; Schedule Updates
         </text>
         <text x="0" y="76" fill="#1e293b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="600">
-          ✓ Lost Baggage Tracking &amp; Regional Passenger Guidance
+          - Lost Baggage Tracking &amp; Regional Passenger Guidance
         </text>
       </g>
 
@@ -153,13 +153,13 @@ export function generateOfficeBannerSvg(
       
       <g transform="translate(80, 360)">
         <text x="0" y="0" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20">
-          ✓ Airport Terminal Desks, Check-In Windows &amp; Hours
+          - Airport Terminal Desks, Check-In Windows &amp; Hours
         </text>
         <text x="0" y="38" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20">
-          ✓ Flight Reservations, Ticket Rebooking &amp; Schedule Updates
+          - Flight Reservations, Ticket Rebooking &amp; Schedule Updates
         </text>
         <text x="0" y="76" fill="#e2e8f0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20">
-          ✓ Lost Baggage Tracking &amp; Regional Passenger Guidance
+          - Lost Baggage Tracking &amp; Regional Passenger Guidance
         </text>
       </g>
 
@@ -231,23 +231,23 @@ export function buildHtmlFromSections(
 
     // Official & Authority redirect links
     if (socialLinks.website && socialLinks.website.trim()) {
-      badges.push(`<a href="${socialLinks.website}" target="_blank" rel="noopener" style="display:inline-block;margin:4px 6px;padding:8px 16px;background:#0f172a;color:#ffffff;text-decoration:none;border-radius:20px;font-size:12px;font-weight:bold;">🌐 Official Website</a>`);
+      badges.push(`<a href="${socialLinks.website}" target="_blank" rel="noopener" style="display:inline-block;margin:4px 6px;padding:8px 16px;background:#0f172a;color:#ffffff;text-decoration:none;border-radius:20px;font-size:12px;font-weight:bold;">Official Website</a>`);
     }
     if (socialLinks.supportUrl && socialLinks.supportUrl.trim()) {
-      badges.push(`<a href="${socialLinks.supportUrl}" target="_blank" rel="noopener" style="display:inline-block;margin:4px 6px;padding:8px 16px;background:#0284c7;color:#ffffff;text-decoration:none;border-radius:20px;font-size:12px;font-weight:bold;">🛟 Help &amp; Support Portal</a>`);
+      badges.push(`<a href="${socialLinks.supportUrl}" target="_blank" rel="noopener" style="display:inline-block;margin:4px 6px;padding:8px 16px;background:#0284c7;color:#ffffff;text-decoration:none;border-radius:20px;font-size:12px;font-weight:bold;">Help &amp; Support Portal</a>`);
     }
     const region = country.toLowerCase();
     const complaintPortal = region.includes('canada')
-      ? ['https://otc-cta.gc.ca/eng/file-complaint', '🇨🇦 Canadian Transportation Complaint Portal']
+      ? ['https://otc-cta.gc.ca/eng/file-complaint', 'Canadian Transportation Complaint Portal']
       : region.includes('united kingdom') || region.includes('uk') || region.includes('england')
-        ? ['https://www.caa.co.uk/passengers/resolving-your-flight-problem/', '🇬🇧 UK CAA Passenger Guidance']
-        : ['https://www.transportation.gov/airconsumer/file-consumer-complaint', '🇺🇸 US DOT Consumer Complaint Portal'];
-    badges.push(`<a href="${complaintPortal[0]}" target="_blank" rel="noopener" style="display:inline-block;margin:4px 6px;padding:8px 16px;background:#1e3a8a;color:#ffffff;text-decoration:none;border-radius:20px;font-size:12px;font-weight:bold;">⚖️ ${complaintPortal[1]}</a>`);
+        ? ['https://www.caa.co.uk/passengers/resolving-your-flight-problem/', 'UK CAA Passenger Guidance']
+        : ['https://www.transportation.gov/airconsumer/file-consumer-complaint', 'US DOT Consumer Complaint Portal'];
+    badges.push(`<a href="${complaintPortal[0]}" target="_blank" rel="noopener" style="display:inline-block;margin:4px 6px;padding:8px 16px;background:#1e3a8a;color:#ffffff;text-decoration:none;border-radius:20px;font-size:12px;font-weight:bold;">${complaintPortal[1]}</a>`);
     const companySite = socialLinks.website?.trim();
-    if (companySite) badges.push(`<a href="${companySite}" target="_blank" rel="noopener" style="display:inline-block;margin:4px 6px;padding:8px 16px;background:#0369a1;color:#ffffff;text-decoration:none;border-radius:20px;font-size:12px;font-weight:bold;">🌐 ${escapeXml(companyName || 'Company Website')}</a>`);
+    if (companySite) badges.push(`<a href="${companySite}" target="_blank" rel="noopener" style="display:inline-block;margin:4px 6px;padding:8px 16px;background:#0369a1;color:#ffffff;text-decoration:none;border-radius:20px;font-size:12px;font-weight:bold;">${escapeXml(companyName || 'Company Website')}</a>`);
 
     if (socialLinks.whatsapp && socialLinks.whatsapp.trim()) {
-      badges.push(`<a href="${socialLinks.whatsapp}" target="_blank" rel="noopener" style="display:inline-block;margin:4px 6px;padding:8px 16px;background:#25d366;color:#ffffff;text-decoration:none;border-radius:20px;font-size:12px;font-weight:bold;">💬 WhatsApp Chat</a>`);
+      badges.push(`<a href="${socialLinks.whatsapp}" target="_blank" rel="noopener" style="display:inline-block;margin:4px 6px;padding:8px 16px;background:#25d366;color:#ffffff;text-decoration:none;border-radius:20px;font-size:12px;font-weight:bold;">WhatsApp Chat</a>`);
     }
 
     // Social Media Platforms
@@ -271,7 +271,7 @@ export function buildHtmlFromSections(
     if (socialLinks.customLinks && Array.isArray(socialLinks.customLinks)) {
       socialLinks.customLinks.forEach((c) => {
         if (c.url && c.url.trim()) {
-          badges.push(`<a href="${c.url}" target="_blank" rel="noopener" style="display:inline-block;margin:4px 6px;padding:8px 16px;background:#475569;color:#ffffff;text-decoration:none;border-radius:20px;font-size:12px;font-weight:bold;">🔗 ${escapeXml(c.label || 'Link')}</a>`);
+          badges.push(`<a href="${c.url}" target="_blank" rel="noopener" style="display:inline-block;margin:4px 6px;padding:8px 16px;background:#475569;color:#ffffff;text-decoration:none;border-radius:20px;font-size:12px;font-weight:bold;">${escapeXml(c.label || 'Link')}</a>`);
         }
       });
     }
@@ -411,14 +411,14 @@ ${companyName.trim() ? `<p style="font-size:13px;color:#475569;font-weight:700;"
 
 <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #ffffff; padding: 22px 26px; border-radius: 12px; margin: 24px 0; box-shadow: 0 4px 16px rgba(2,132,199,0.3); border-left: 6px solid #ff9500;">
   <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1.2px; color: #ffeb3b; font-weight: bold; margin-bottom: 6px;">
-    ✈️ 24/7 Independent Passenger Assistance Desk
+    24/7 Independent Passenger Assistance Desk
   </div>
   <p style="margin: 0 0 14px 0; font-size: 15px; line-height: 1.5; color: #ffffff;">
     Need immediate live assistance with ${escapeXml(airlineName)} reservations, ticket rebooking, name corrections, flight cancellations, or passenger terminal guidance? Connect with an independent travel support specialist:
   </p>
   <div style="text-align: center; margin-top: 12px;">
     <a href="tel:${telLink}" style="display: inline-block; background: #e11d48; color: #ffffff; padding: 14px 28px; font-size: 18px; font-weight: bold; text-decoration: none; border-radius: 50px; box-shadow: 0 4px 12px rgba(225,29,72,0.4); border: 2px solid #ffffff;">
-      📞 Call 24/7 Support: ${cleanTfn}
+      Call 24/7 Support: ${cleanTfn}
     </a>
   </div>
 </div>

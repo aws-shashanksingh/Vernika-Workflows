@@ -42,7 +42,8 @@ import {
   Layers,
   Key,
   Download,
-  Zap
+  Zap,
+  X
 } from 'lucide-react';
 import { 
   TARGET_BLOGGER_ID, 
@@ -110,6 +111,7 @@ export default function App() {
   const [accountProfileName, setAccountProfileName] = useState('');
   const [accountExpiresAt, setAccountExpiresAt] = useState<string | null>(null);
   const [accountRole, setAccountRole] = useState<'admin' | 'user' | null>(null);
+  const [expiryModalDismissed, setExpiryModalDismissed] = useState(false);
   const lastActivityRef = useRef<number>(Date.now());
 
   useEffect(() => {
@@ -155,9 +157,8 @@ export default function App() {
     let active = true;
     fetch('/api/account/credentials/blogger', { credentials: 'include', cache: 'no-store' })
       .then(async (response) => {
-        if (response.status === 401 || response.status === 403) return null;
-        if (!response.ok) throw new Error('Could not load encrypted Blogger settings.');
-        return response.json();
+        if (!response.ok) return null;
+        return response.json().catch(() => null);
       })
       .then((config) => {
         if (!active || !config) return;
@@ -165,7 +166,7 @@ export default function App() {
         if (typeof config.mcpUrl === 'string') setN8nMcpUrl(config.mcpUrl);
         if (typeof config.apiKey === 'string') setN8nApiKey(config.apiKey);
       })
-      .catch((error) => console.error('[Blogger settings] Load failed:', error));
+      .catch(() => undefined);
     return () => { active = false; };
   }, [isAuthenticated, accountRole]);
 
@@ -1094,7 +1095,7 @@ export default function App() {
       setCurrentPostIndex(0);
       setActiveSection('review');
       addLog('workflow', 'success', 'Queue Populated', `Added ${queue.length} articles to review queue via n8n.`);
-      setStatusMessage(`⚡ n8n workflow generated blog successfully! Created ${queue.length} review-ready post${queue.length === 1 ? '' : 's'}.`);
+      setStatusMessage(`n8n workflow generated blog successfully! Created ${queue.length} review-ready post${queue.length === 1 ? '' : 's'}.`);
     } catch (error) {
       console.error('n8n workflow generation failed:', error);
       addLog('workflow', 'error', 'Workflow Failed', error instanceof Error ? error.message : 'Unknown error');
@@ -1900,16 +1901,16 @@ export default function App() {
         <p className="mb-3 mt-7 px-2 text-[10px] font-black uppercase tracking-wider text-slate-500">Settings</p>
         <nav className="space-y-1 text-xs font-semibold">
           <button onClick={() => setShowRefreshTokenModal(true)} className={`block w-full rounded-lg px-3 py-2 text-left transition ${isBackendConnected ? 'text-emerald-500 hover:bg-emerald-500/10' : 'hover:bg-sky-500/10 hover:text-sky-500'}`}>
-            Google Connection {isBackendConnected && '✓'}
+            Google Connection {isBackendConnected && '• Active'}
           </button>
           <button onClick={() => setShowAiModal(true)} className={`block w-full rounded-lg px-3 py-2 text-left transition ${(aiProvider === 'gemini' ? geminiKey : deepSeekKey) ? 'text-sky-500 hover:bg-sky-500/10' : 'hover:bg-sky-500/10 hover:text-sky-500'}`}>
-            ✨ AI Engine {(aiProvider === 'gemini' ? geminiKey : deepSeekKey) && '• Active'}
+            AI Engine {(aiProvider === 'gemini' ? geminiKey : deepSeekKey) && '• Active'}
           </button>
           <button onClick={() => setShowPublishingSecurityModal(true)} className={`block w-full rounded-lg px-3 py-2 text-left transition ${publishSecret ? 'text-emerald-500 hover:bg-emerald-500/10' : 'hover:bg-sky-500/10 hover:text-sky-500'}`}>
-            🛡️ Publishing Security {publishSecret && '• Secure'}
+            Publishing Security {publishSecret && '• Secure'}
           </button>
           <button onClick={() => setShowN8nWorkflowModal(true)} className={`block w-full rounded-lg px-3 py-2 text-left transition ${n8nApiKey ? 'text-violet-500 hover:bg-violet-500/10' : 'hover:bg-sky-500/10 hover:text-sky-500'}`}>
-            ⚡ n8n Workflow {n8nApiKey && '• Wired'}
+            n8n Workflow {n8nApiKey && '• Wired'}
           </button>
           <button onClick={() => setShowSocialModal(true)} className="block w-full rounded-lg px-3 py-2 text-left hover:bg-sky-500/10 hover:text-sky-500">Website & Social Links</button>
           <button onClick={() => setShowPublicPage(true)} className="block w-full rounded-lg px-3 py-2 text-left hover:bg-sky-500/10 hover:text-sky-500">Public Page & Verification</button>
@@ -2197,7 +2198,7 @@ export default function App() {
                   title="Generate unique, human-grade SEO articles using AI"
                 >
                   <Sparkles className={`w-4 h-4 ${isGeneratingBulk && bulkProgress ? 'animate-spin' : ''}`} />
-                  {isGeneratingBulk && bulkProgress ? 'Writing...' : '✨ Generate with AI'}
+                  {isGeneratingBulk && bulkProgress ? 'Writing...' : 'Generate with AI'}
                 </button>
                 <button
                   type="button"
@@ -2216,7 +2217,7 @@ export default function App() {
                   title="Trigger automated n8n workflow: saves pending request to requests table, executes n8n, and loads generated blog"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
-                  <span>{isGeneratingBulk ? 'Triggering...' : '⚡ Run n8n Workflow'}</span>
+                  <span>{isGeneratingBulk ? 'Triggering...' : 'Run n8n Workflow'}</span>
                 </button>
                 {workflowRequestId && (
                   <button
@@ -2500,7 +2501,7 @@ export default function App() {
             {statusMessage && (
               <div className="mt-3 p-3 rounded-lg bg-sky-500/10 border border-sky-500/30 text-xs text-sky-800 dark:text-sky-300 flex items-center justify-between">
                 <span>{statusMessage}</span>
-                <button onClick={() => setStatusMessage(null)} className="text-slate-400 hover:text-slate-700 text-xs">✕</button>
+                <button onClick={() => setStatusMessage(null)} aria-label="Dismiss notification" className="text-slate-400 hover:text-slate-700 text-xs"><X className="w-3.5 h-3.5" /></button>
               </div>
             )}
 
@@ -2855,7 +2856,7 @@ export default function App() {
                 <Globe className="w-4 h-4 text-sky-500" />
                 Website, Portals &amp; Social Links (Optional)
               </h3>
-              <button onClick={() => setShowSocialModal(false)} className="text-slate-400 hover:text-slate-600 text-xs">✕</button>
+              <button onClick={() => setShowSocialModal(false)} aria-label="Close links modal" className="text-slate-400 hover:text-slate-600 text-xs"><X className="w-4 h-4" /></button>
             </div>
 
             <p className="text-xs text-slate-500">
@@ -3168,6 +3169,33 @@ export default function App() {
           addLog('system', 'success', 'n8n Settings Saved', 'Integration settings are encrypted for this account.');
         }}
       />
+
+      {accountExpiresAt && !expiryModalDismissed && (() => {
+        const msLeft = Date.parse(accountExpiresAt) - Date.now();
+        return msLeft > 0 && msLeft <= 2 * 24 * 60 * 60 * 1000;
+      })() && (
+        <div role="dialog" aria-modal="true" aria-labelledby="blogger-expiry-title" className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+          <div className={`w-full max-w-md rounded-2xl border p-5 shadow-2xl ${isDarkMode ? 'border-amber-700/60 bg-slate-900 text-slate-100' : 'border-amber-300 bg-white text-slate-900'}`}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2 text-amber-500">
+                <AlertCircle className="h-5 w-5 shrink-0" />
+                <h3 id="blogger-expiry-title" className="text-sm font-bold">Subscription Expiring Soon</h3>
+              </div>
+              <button type="button" onClick={() => setExpiryModalDismissed(true)} aria-label="Dismiss expiry reminder" className="rounded-lg p-1 text-slate-400 hover:bg-slate-800/40 hover:text-slate-200">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className={`mt-3 text-xs leading-relaxed ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+              Your Vernika Workflows access expires on <strong>{new Date(accountExpiresAt).toLocaleString()}</strong> (within 2 days). Please contact your administrator to renew your subscription before access pauses.
+            </p>
+            <div className="mt-4 flex justify-end">
+              <button type="button" onClick={() => setExpiryModalDismissed(true)} className="rounded-xl bg-amber-600 px-4 py-2 text-xs font-bold text-white hover:bg-amber-500">
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer with Developer Credits and Social Icons */}
       <footer className={`border-t py-3 px-6 text-center text-xs flex flex-col sm:flex-row items-center justify-between gap-3 transition-colors ${

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Sparkles, Check, Key, ShieldCheck, AlertCircle, RefreshCw, Zap } from 'lucide-react';
 import { AiProvider, getAiProvider, setAiProvider, getDeepSeekApiKey, setDeepSeekApiKey, getGeminiApiKey, setGeminiApiKey } from '../services/deepseek';
 
@@ -20,6 +20,20 @@ export const AiProviderModal: React.FC<AiProviderModalProps> = ({
   const [deepSeekKeyInput, setDeepSeekKeyInput] = useState<string>(() => getDeepSeekApiKey());
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [savedNames, setSavedNames] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let active = true;
+    fetch('/api/account/credentials/blogger/status', { credentials: 'include', cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!active || !data || !Array.isArray(data.saved)) return;
+        setSavedNames(new Set(data.saved));
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -63,6 +77,7 @@ export const AiProviderModal: React.FC<AiProviderModalProps> = ({
       const activeKey = provider === 'gemini' ? geminiKeyInput : deepSeekKeyInput;
       const res = await fetch('/api/ai/generate', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           airlineName: 'Test Airline',
@@ -170,9 +185,16 @@ export const AiProviderModal: React.FC<AiProviderModalProps> = ({
           {/* Key Input based on chosen provider */}
           {provider === 'gemini' ? (
             <div>
-              <label className="block text-xs font-bold mb-1 opacity-80">
-                Gemini API Key
-              </label>
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <label className="block text-xs font-bold opacity-80">
+                  Gemini API Key
+                </label>
+                {savedNames.has('GEMINI_API_KEY') && (
+                  <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-500">
+                    Saved encrypted on server
+                  </span>
+                )}
+              </div>
               <input
                 type="password"
                 value={geminiKeyInput}
@@ -188,9 +210,16 @@ export const AiProviderModal: React.FC<AiProviderModalProps> = ({
             </div>
           ) : (
             <div>
-              <label className="block text-xs font-bold mb-1 opacity-80">
-                DeepSeek API Key
-              </label>
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <label className="block text-xs font-bold opacity-80">
+                  DeepSeek API Key
+                </label>
+                {savedNames.has('DEEPSEEK_API_KEY') && (
+                  <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-500">
+                    Saved encrypted on server
+                  </span>
+                )}
+              </div>
               <input
                 type="password"
                 value={deepSeekKeyInput}

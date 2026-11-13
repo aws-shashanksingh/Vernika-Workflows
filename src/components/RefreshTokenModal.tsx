@@ -102,7 +102,7 @@ export const RefreshTokenModal: React.FC<RefreshTokenModalProps> = ({
               Google automatically expires refresh tokens every <strong>7 days</strong> if your Google Cloud OAuth Consent Screen is in <strong>&quot;Testing&quot;</strong> mode.
             </p>
             <div className="p-2.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-[11px] font-medium leading-relaxed">
-              💡 <strong>How to make it NEVER expire:</strong> Go to Google Cloud Console &gt; <em>APIs &amp; Services</em> &gt; <em>OAuth consent screen</em> and click <strong>&quot;Publish App&quot;</strong> (status: &quot;In production&quot;). Permanent tokens never expire!
+              <strong>How to make it NEVER expire:</strong> Go to Google Cloud Console &gt; <em>APIs &amp; Services</em> &gt; <em>OAuth consent screen</em> and click <strong>&quot;Publish App&quot;</strong> (status: &quot;In production&quot;). Permanent tokens never expire!
             </div>
           </div>
 

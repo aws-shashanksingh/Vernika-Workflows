@@ -12,6 +12,7 @@ export default function BlogGenerator() {
   const [generatedPrompt, setGeneratedPrompt] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [blogPost, setBlogPost] = useState<BlogPackage | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string>('');
 
   // 1. Generate the optimized system prompt based on user's topic
   const handleTopicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -36,11 +37,13 @@ export default function BlogGenerator() {
 
     setIsLoading(true);
     setBlogPost(null);
+    setErrorMsg('');
 
     try {
       // Step A: Generate text through the backend provider cascade
       const textResponse = await fetch('/api/ai/generate', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           keyword: topic,
@@ -66,7 +69,7 @@ export default function BlogGenerator() {
 
     } catch (error) {
       console.error('Generation Error:', error);
-      alert('Something went wrong during generation. Please try again.');
+      setErrorMsg('Something went wrong during generation. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -75,6 +78,11 @@ export default function BlogGenerator() {
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px', fontFamily: 'sans-serif' }}>
       <h1>AI Blog Generator</h1>
+      {errorMsg && (
+        <div role="alert" style={{ marginBottom: '15px', padding: '12px', borderRadius: '6px', background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', fontSize: '14px' }}>
+          {errorMsg}
+        </div>
+      )}
 
       <form onSubmit={generateBlog} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
         <div>
@@ -110,7 +118,7 @@ export default function BlogGenerator() {
             fontWeight: 'bold'
           }}
         >
-          {isLoading ? 'Generating Content...' : '⚡ Generate Full Blog Package'}
+          {isLoading ? 'Generating Content...' : 'Generate Full Blog Package'}
         </button>
       </form>
 

@@ -39,6 +39,7 @@ import {
   Check,
   Loader2,
   Eye,
+  AlertTriangle,
 } from 'lucide-react';
 import {
   DEFAULT_OLD_TFN,
@@ -114,6 +115,7 @@ export default function App() {
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [accountProfileName, setAccountProfileName] = useState('');
   const [accountExpiresAt, setAccountExpiresAt] = useState<string | null>(null);
+  const [expiryModalDismissed, setExpiryModalDismissed] = useState(false);
   useEffect(() => {
     fetch('/api/access/session', { credentials: 'include', cache: 'no-store' })
       .then(async (response) => {
@@ -466,7 +468,8 @@ export default function App() {
       const res = await fetch(
         `${baseUrl}/api/system-status?customPath=${encodeURIComponent(
           libreOfficePath
-        )}`
+        )}`,
+        { credentials: 'include' }
       );
       if (res.ok) {
         const data = await res.json();
@@ -487,7 +490,10 @@ export default function App() {
   // Pull & sync global workspace state across Mac, Phone, and multiple browser windows
   const pullGlobalWorkspaceConfig = async () => {
     try {
-      const res = await fetch('/api/workspace-config', { cache: 'no-store' });
+      const res = await fetch('/api/workspace-config', {
+        credentials: 'include',
+        cache: 'no-store',
+      });
       if (!res.ok) return;
       const cfg = await res.json();
       if (!cfg) return;
@@ -667,6 +673,7 @@ export default function App() {
     try {
       const res = await fetch('/api/sync-google-doc', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           credentials,
@@ -724,7 +731,7 @@ export default function App() {
 
       setSyncedDocFlash(true);
       setTimeout(() => setSyncedDocFlash(false), 2000);
-      triggerActionNotice(`✓ Synced Google Doc (${cleanDocId}) across all devices!`);
+      triggerActionNotice(`Synced Google Doc (${cleanDocId}) across all devices!`);
       setStatusMessage(
         `Sync complete (${cleanDocId}): ${data.foundAirlines?.length || 0} airline(s), ${
           data.uniqueTfns?.length || 0
@@ -889,7 +896,7 @@ export default function App() {
       );
       setGeneratedFlash(true);
       setTimeout(() => setGeneratedFlash(false), 2200);
-      triggerActionNotice(`✓ Generated ${builtItems.length} PDF document(s)!`);
+      triggerActionNotice(`Generated ${builtItems.length} PDF document(s)!`);
     } catch (err: unknown) {
       setStatusMessage(
         `Generation Failed: ${err instanceof Error ? err.message : String(err)}`
@@ -1476,7 +1483,7 @@ export default function App() {
                     handleResetHomeDefaultValues();
                     setResetDefaultsFlash(true);
                     setTimeout(() => setResetDefaultsFlash(false), 1800);
-                    triggerActionNotice('✓ Reset Old TFN, New TFN & Replacement Word to Defaults');
+                    triggerActionNotice('Reset Old TFN, New TFN & Replacement Word to Defaults');
                   }}
                   className="h-8 px-3 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 text-xs font-semibold rounded-lg transition-all inline-flex items-center gap-1.5 cursor-pointer"
                   title="Reset Old TFN, New TFN, and Replacement Word to configured defaults"
@@ -2272,7 +2279,7 @@ export default function App() {
               setTemplateBuffer(null);
               setTemplateName(null);
               setGoogleDocUrl(nextUrl);
-              triggerActionNotice(`✓ Updated Google Doc URL (${extractGoogleDocId(nextUrl)}) & Purged Old Cache`);
+              triggerActionNotice(`Updated Google Doc URL (${extractGoogleDocId(nextUrl)}) & Purged Old Cache`);
             }}
             defaultOldTfn={defaultOldTfn}
             defaultNewTfn={defaultNewTfn}
@@ -2529,7 +2536,7 @@ export default function App() {
                     Share to 3rd-Party Apps
                   </h3>
                   <p className="text-xs text-emerald-700 font-medium">
-                    ✓ Auto-Downloaded: {shareModalTarget.fileName}
+                    Auto-Downloaded: {shareModalTarget.fileName}
                   </p>
                 </div>
               </div>
@@ -2663,6 +2670,57 @@ export default function App() {
           );
         })}
       </nav>
+
+      {/* 2-Day Subscription Expiry Reminder Dialog */}
+      {!expiryModalDismissed &&
+        accountExpiresAt &&
+        Date.parse(accountExpiresAt) > Date.now() &&
+        Date.parse(accountExpiresAt) - Date.now() <= 2 * 24 * 60 * 60 * 1000 && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="seo-expiry-reminder-title"
+            className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4"
+          >
+            <div className="bg-white border border-amber-300 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 id="seo-expiry-reminder-title" className="text-sm font-bold text-slate-900">
+                      Subscription Expiring Soon
+                    </h3>
+                    <p className="text-xs text-slate-600">
+                      Access expires on {new Date(accountExpiresAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setExpiryModalDismissed(true)}
+                  className="text-slate-400 hover:text-slate-700 cursor-pointer"
+                  aria-label="Dismiss reminder"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-xs text-slate-700 leading-relaxed">
+                Your Vernika SEO PDF Studio subscription expires within 2 days. Contact your administrator to renew access and avoid service interruption.
+              </p>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setExpiryModalDismissed(true)}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg cursor-pointer"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
 }

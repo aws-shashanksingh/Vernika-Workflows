@@ -78,6 +78,12 @@ export const SettingsAndGuidePanel: React.FC<SettingsAndGuidePanelProps> = ({
     return localStorage.getItem('seo_github_repo') || '';
   });
   const [githubTokenInput, setGithubTokenInput] = useState<string>('');
+  const [indexNowKeyInput, setIndexNowKeyInput] = useState<string>('');
+  const [credStatus, setCredStatus] = useState<{
+    hasGithubToken: boolean;
+    hasIndexNowKey: boolean;
+  }>({ hasGithubToken: false, hasIndexNowKey: false });
+  const [savingSecretName, setSavingSecretName] = useState<'GITHUB_TOKEN' | 'INDEXNOW_KEY' | null>(null);
 
   // Button action loader & confirmation states so user sees immediate feedback on first click
   const [activeActionLabel, setActiveActionLabel] = useState<string | null>(null);
@@ -115,6 +121,69 @@ export const SettingsAndGuidePanel: React.FC<SettingsAndGuidePanelProps> = ({
     setDefNewTfnInput(defaultNewTfn);
     setDefWordInput(defaultReplacementWord);
   }, [defaultOldTfn, defaultNewTfn, defaultReplacementWord]);
+
+  useEffect(() => {
+    localStorage.setItem('seo_github_repo', githubRepoInput);
+  }, [githubRepoInput]);
+
+  useEffect(() => {
+    fetch('/api/account/credentials/seo-pdf/status', {
+      credentials: 'include',
+      cache: 'no-store',
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) {
+          setCredStatus({
+            hasGithubToken: Boolean(data.hasGithubToken),
+            hasIndexNowKey: Boolean(data.hasIndexNowKey),
+          });
+        }
+      })
+      .catch(() => {
+        // ignore offline
+      });
+  }, []);
+
+  const handleSaveIntegrationSecret = async (
+    name: 'GITHUB_TOKEN' | 'INDEXNOW_KEY',
+    value: string,
+    deleteSecret = false
+  ) => {
+    setSavingSecretName(name);
+    try {
+      const res = await fetch(`/api/account/credentials/seo-pdf/${name}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(
+          deleteSecret ? { value: '', delete: true } : { value: value.trim() }
+        ),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || `Could not update ${name}`);
+      }
+      setCredStatus((prev) => ({
+        ...prev,
+        hasGithubToken: name === 'GITHUB_TOKEN' ? !deleteSecret && Boolean(value.trim()) : prev.hasGithubToken,
+        hasIndexNowKey: name === 'INDEXNOW_KEY' ? !deleteSecret && Boolean(value.trim()) : prev.hasIndexNowKey,
+      }));
+      if (name === 'GITHUB_TOKEN') setGithubTokenInput('');
+      if (name === 'INDEXNOW_KEY') setIndexNowKeyInput('');
+      setStatusMsg(
+        deleteSecret
+          ? `Removed encrypted ${name} from your account.`
+          : `Saved ${name} encrypted on server.`
+      );
+    } catch (error) {
+      setStatusMsg(
+        error instanceof Error ? error.message : `Could not update ${name}.`
+      );
+    } finally {
+      setSavingSecretName(null);
+    }
+  };
 
   const handleFieldChange = (
     key: 'project_id' | 'client_email' | 'private_key',
@@ -255,6 +324,7 @@ export const SettingsAndGuidePanel: React.FC<SettingsAndGuidePanelProps> = ({
     try {
       await fetch('/api/workspace-config', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           defaultOldTfn: cleanOld,
@@ -304,6 +374,7 @@ export const SettingsAndGuidePanel: React.FC<SettingsAndGuidePanelProps> = ({
     try {
       await fetch('/api/workspace-config', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ googleDocUrl: cleanUrl }),
       });
@@ -363,6 +434,7 @@ export const SettingsAndGuidePanel: React.FC<SettingsAndGuidePanelProps> = ({
           }
           const res = await fetch('/api/upload-profile-avatar', {
             method: 'POST',
+            credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               imageDataUri: dataUri,
@@ -529,6 +601,7 @@ export const SettingsAndGuidePanel: React.FC<SettingsAndGuidePanelProps> = ({
                       try {
                         await fetch('/api/workspace-config', {
                           method: 'POST',
+                          credentials: 'include',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ userName: clean }),
                         });
@@ -605,6 +678,7 @@ export const SettingsAndGuidePanel: React.FC<SettingsAndGuidePanelProps> = ({
                       try {
                         await fetch('/api/workspace-config', {
                           method: 'POST',
+                          credentials: 'include',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ userAvatarUrl: rawUrl }),
                         });
@@ -626,6 +700,7 @@ export const SettingsAndGuidePanel: React.FC<SettingsAndGuidePanelProps> = ({
                       try {
                         await fetch('/api/workspace-config', {
                           method: 'POST',
+                          credentials: 'include',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({
                             userAvatarUrl: DEFAULT_TANU_AVATAR_DATA_URI,
@@ -645,31 +720,117 @@ export const SettingsAndGuidePanel: React.FC<SettingsAndGuidePanelProps> = ({
             </div>
           </div>
 
-          {/* Optional Direct GitHub Repo Push Config for Profile Photo */}
-          <div className="pt-3 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Encrypted Server Integration Credentials (GitHub Token & IndexNow Key) */}
+          <div className="pt-4 border-t border-slate-100 space-y-3">
             <div>
-              <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                Optional GitHub Repository for Direct Avatar Commit (e.g. <code>username/repo</code>)
-              </label>
-              <input
-                type="text"
-                value={githubRepoInput}
-                onChange={(e) => setGithubRepoInput(e.target.value)}
-                placeholder="e.g. tanusingh/seo-automator (auto-saves to public/tanu-singh-avatar.jpg)"
-                className="w-full h-8 px-3 rounded-lg border border-slate-200 text-xs font-mono text-slate-800"
-              />
+              <h3 className="text-xs font-bold text-slate-800">
+                Encrypted Integration Keys (Saved on Server per Account)
+              </h3>
+              <p className="text-[11px] text-slate-500">
+                Save your GitHub token (for remote avatar commits) and IndexNow key encrypted on the server instead of storing secrets in the browser.
+              </p>
             </div>
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                Optional GitHub Personal Access Token (for remote GitHub API push)
-              </label>
-              <input
-                type="password"
-                value={githubTokenInput}
-                onChange={(e) => setGithubTokenInput(e.target.value)}
-                placeholder="ghp_... (optional — local repo files update automatically)"
-                className="w-full h-8 px-3 rounded-lg border border-slate-200 text-xs font-mono text-slate-800"
-              />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                  GitHub Repository (<code>username/repo</code>)
+                </label>
+                <input
+                  type="text"
+                  value={githubRepoInput}
+                  onChange={(e) => setGithubRepoInput(e.target.value)}
+                  placeholder="e.g. username/repo"
+                  className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs font-mono text-slate-800"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <label className="block text-[11px] font-semibold text-slate-600">
+                    GitHub Personal Access Token
+                  </label>
+                  {credStatus.hasGithubToken && (
+                    <span className="text-[10px] font-semibold text-emerald-700">
+                      Saved encrypted on server
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="password"
+                    value={githubTokenInput}
+                    onChange={(e) => setGithubTokenInput(e.target.value)}
+                    placeholder={
+                      credStatus.hasGithubToken
+                        ? 'Enter new token to replace saved token'
+                        : 'ghp_... (optional)'
+                    }
+                    className="flex-1 min-w-0 h-9 px-3 rounded-lg border border-slate-300 text-xs font-mono text-slate-800"
+                  />
+                  <button
+                    type="button"
+                    disabled={savingSecretName === 'GITHUB_TOKEN' || !githubTokenInput.trim()}
+                    onClick={() => void handleSaveIntegrationSecret('GITHUB_TOKEN', githubTokenInput)}
+                    className="h-9 px-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg cursor-pointer shrink-0"
+                  >
+                    Save
+                  </button>
+                  {credStatus.hasGithubToken && (
+                    <button
+                      type="button"
+                      disabled={savingSecretName === 'GITHUB_TOKEN'}
+                      onClick={() => void handleSaveIntegrationSecret('GITHUB_TOKEN', '', true)}
+                      className="h-9 px-2.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 text-xs font-semibold rounded-lg cursor-pointer shrink-0"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <label className="block text-[11px] font-semibold text-slate-600">
+                    IndexNow API Key
+                  </label>
+                  {credStatus.hasIndexNowKey && (
+                    <span className="text-[10px] font-semibold text-emerald-700">
+                      Saved encrypted on server
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="password"
+                    value={indexNowKeyInput}
+                    onChange={(e) => setIndexNowKeyInput(e.target.value)}
+                    placeholder={
+                      credStatus.hasIndexNowKey
+                        ? 'Enter new key to replace saved key'
+                        : 'Paste IndexNow API key'
+                    }
+                    className="flex-1 min-w-0 h-9 px-3 rounded-lg border border-slate-300 text-xs font-mono text-slate-800"
+                  />
+                  <button
+                    type="button"
+                    disabled={savingSecretName === 'INDEXNOW_KEY' || !indexNowKeyInput.trim()}
+                    onClick={() => void handleSaveIntegrationSecret('INDEXNOW_KEY', indexNowKeyInput)}
+                    className="h-9 px-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg cursor-pointer shrink-0"
+                  >
+                    Save
+                  </button>
+                  {credStatus.hasIndexNowKey && (
+                    <button
+                      type="button"
+                      disabled={savingSecretName === 'INDEXNOW_KEY'}
+                      onClick={() => void handleSaveIntegrationSecret('INDEXNOW_KEY', '', true)}
+                      className="h-9 px-2.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 text-xs font-semibold rounded-lg cursor-pointer shrink-0"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
