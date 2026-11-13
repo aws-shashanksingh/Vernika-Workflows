@@ -579,6 +579,7 @@ export default function App() {
   };
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     void pullGlobalWorkspaceConfig();
     const handleTrigger = () => {
       void pullGlobalWorkspaceConfig();
@@ -598,11 +599,12 @@ export default function App() {
       document.removeEventListener('visibilitychange', onVisibilityChange);
       clearInterval(interval);
     };
-  }, [googleDocUrl, googleSheetUrl, credentials.client_email]);
+  }, [isAuthenticated, googleDocUrl, googleSheetUrl, credentials.client_email]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     checkServerStatus();
-  }, [libreOfficePath, localBridgeUrl]);
+  }, [isAuthenticated, libreOfficePath, localBridgeUrl]);
 
   const filteredAirlines = useMemo(() => {
     const q = airlineSearch.trim().toLowerCase();

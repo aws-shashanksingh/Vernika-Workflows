@@ -456,57 +456,6 @@ app.get(['/api/workflow/drafts', '/workflow/drafts'], async (_req, res) => {
   }
 });
 
-app.get(['/api/workflow/status', '/workflow/status'], async (req, res) => {
-  const serviceKey = getValidServiceKey();
-  const requestId = String(req.query.requestId || '');
-
-  try {
-    if (!storageUrl || !serviceKey) return res.status(503).json({ error: 'Blogger workflow storage is not configured.' });
-    if (!requestId) return res.status(400).json({ error: 'A workflow request ID is required.' });
-    const headers = { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey };
-    const ownerId = getWorkflowDataOwnerId();
-    const ownedRequestUrl = `${storageUrl}/rest/v1/requests?select=id&user_id=eq.${ownerId}&id=eq.${encodeURIComponent(requestId)}&limit=1`;
-    const ownedRequest = await fetch(ownedRequestUrl, { headers });
-    if (!ownedRequest.ok) throw new Error(`Could not verify workflow request (${ownedRequest.status}).`);
-    const ownedRows = await ownedRequest.json();
-    if (!Array.isArray(ownedRows) || ownedRows.length === 0) {
-      return res.status(404).json({ error: 'Workflow request not found for this account.' });
-    }
-
-    const url = `${storageUrl}/rest/v1/blogs?request_id=eq.${encodeURIComponent(requestId)}&order=created_at.desc&limit=10`;
-    const response = await fetch(url, { headers });
-    if (!response.ok) throw new Error(`Could not load workflow results (${response.status}).`);
-    const blogs = await response.json();
-    res.json({ success: true, blogs: Array.isArray(blogs) ? blogs : [] });
-  } catch (err: any) {
-    console.error('[Workflow] Status lookup failed:', err);
-    res.status(500).json({ error: err.message || 'Workflow status check failed' });
-  }
-});
-
-app.get(['/api/workflow/drafts', '/workflow/drafts'], async (req, res) => {
-  const serviceKey = getValidServiceKey();
-
-  try {
-    if (!storageUrl || !serviceKey) return res.status(503).json({ error: 'Blogger workflow storage is not configured.' });
-    const headers = { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey };
-    const ownerId = getWorkflowDataOwnerId();
-    const requestsResponse = await fetch(`${storageUrl}/rest/v1/requests?select=id&user_id=eq.${ownerId}&order=created_at.desc&limit=50`, { headers });
-    if (!requestsResponse.ok) throw new Error(`Could not load this account's workflow requests (${requestsResponse.status}).`);
-    const requests = await requestsResponse.json();
-    const requestIds: string[] = Array.isArray(requests) ? requests.map((request: { id: string }) => request.id) : [];
-    if (requestIds.length === 0) return res.json({ success: true, drafts: [] });
-    const encodedIds = `(${requestIds.map((id) => `"${id}"`).join(',')})`;
-    const response = await fetch(`${storageUrl}/rest/v1/blogs?request_id=in.${encodeURIComponent(encodedIds)}&order=created_at.desc&limit=50`, { headers });
-    if (!response.ok) throw new Error(`Could not load this account's drafts (${response.status}).`);
-    const blogs = await response.json();
-    res.json({ success: true, drafts: Array.isArray(blogs) ? blogs : [] });
-  } catch (err: any) {
-    console.error('[Workflow] Draft load failed:', err);
-    res.status(500).json({ error: err.message || 'Drafts listing failed' });
-  }
-});
-
 /**
  * Standardized Access Token Retrieval using Refresh Token
  */

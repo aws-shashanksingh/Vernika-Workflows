@@ -265,7 +265,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({ onAuthenticated, lockNotice 
                 </button>
                 <button
                   type="submit"
-                  disabled={loading || otp.length !== 10}
+                  disabled={loading || otp.length < 6 || otp.length > 10}
                   className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-neutral-950 font-semibold text-sm transition-all shadow-lg shadow-cyan-500/20 disabled:opacity-50 cursor-pointer active:scale-[0.99]"
                 >
                   {loading ? (

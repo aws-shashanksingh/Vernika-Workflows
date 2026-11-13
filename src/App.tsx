@@ -109,6 +109,7 @@ export default function App() {
   const [returnOtpRequired, setReturnOtpRequired] = useState(false);
   const [accountProfileName, setAccountProfileName] = useState('');
   const [accountExpiresAt, setAccountExpiresAt] = useState<string | null>(null);
+  const [accountRole, setAccountRole] = useState<'admin' | 'user' | null>(null);
   const lastActivityRef = useRef<number>(Date.now());
 
   useEffect(() => {
@@ -118,6 +119,7 @@ export default function App() {
         if (response.ok && session.authenticated && session.tools?.includes('blogger')) {
           setAccountProfileName(session.profileName || session.username || '');
           setAccountExpiresAt(session.accountExpiresAt || null);
+          setAccountRole(session.role === 'admin' || session.role === 'user' ? session.role : null);
           setIsAuthenticated(true);
         }
       })
@@ -149,21 +151,23 @@ export default function App() {
   const [n8nApiKey, setN8nApiKey] = useState<string>('');
 
   useEffect(() => {
+    if (!isAuthenticated || accountRole !== 'user') return;
     let active = true;
     fetch('/api/account/credentials/blogger', { credentials: 'include', cache: 'no-store' })
       .then(async (response) => {
+        if (response.status === 401 || response.status === 403) return null;
         if (!response.ok) throw new Error('Could not load encrypted Blogger settings.');
         return response.json();
       })
       .then((config) => {
-        if (!active) return;
+        if (!active || !config) return;
         if (typeof config.webhookUrl === 'string') setN8nWebhookUrl(config.webhookUrl);
         if (typeof config.mcpUrl === 'string') setN8nMcpUrl(config.mcpUrl);
         if (typeof config.apiKey === 'string') setN8nApiKey(config.apiKey);
       })
       .catch((error) => console.error('[Blogger settings] Load failed:', error));
     return () => { active = false; };
-  }, []);
+  }, [isAuthenticated, accountRole]);
 
   // Step 1 Campaign Banner State
   const [campaignBannerUrl, setCampaignBannerUrl] = useState<string>('');
@@ -568,20 +572,21 @@ export default function App() {
 
   // Backend connection status check
   useEffect(() => {
+    if (!isAuthenticated) return;
     fetch('/api/status', {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken: customRefreshToken }),
     })
-      .then(r => r.json())
+      .then(r => (r.ok ? r.json() : { connected: false }))
       .then(data => {
         setIsBackendConnected(!!data.connected);
       })
       .catch(() => {
         setIsBackendConnected(false);
       });
-  }, [customRefreshToken]);
+  }, [isAuthenticated, customRefreshToken]);
 
 
 
