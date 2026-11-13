@@ -21,7 +21,7 @@ function getValidSupabaseUrl(): string {
 }
 
 function getValidServiceKey(): string {
-  const envKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  const envKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || '';
   if (envKey && !envKey.includes('your-service') && !envKey.includes('your-anon')) {
     return envKey;
   }

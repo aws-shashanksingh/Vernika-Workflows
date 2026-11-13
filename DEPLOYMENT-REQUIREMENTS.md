@@ -7,7 +7,7 @@ Set these in the Vercel project's **Settings → Environment Variables** for Pro
 | Variable | Value |
 | --- | --- |
 | `SUPABASE_URL` | Project URL from Supabase **Project Settings → API** |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-side service-role/secret key for that Supabase project. Keep it private; never use a `VITE_` name. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-side service-role key for that Supabase project. Keep it private; never use a `VITE_` name. The server also accepts Supabase's newer `SUPABASE_SECRET_KEY` variable if that is what the Vercel integration provides. |
 | `ADMIN_USERNAME` | Username you choose for the Vernika administrator, for example `vernika-admin` |
 | `ADMIN_PASSWORD` | A unique, strong password you choose |
 | `ADMIN_OTP` | Your administrator's numeric OTP, 6–10 digits |
@@ -28,6 +28,8 @@ openssl rand -base64 32 # run again; use the other output for CREDENTIAL_ENCRYPT
 Keep the encryption key backed up securely. Changing `SESSION_SECRET` invalidates sessions; changing `CREDENTIAL_ENCRYPTION_KEY` prevents decryption of credentials already saved by the admin.
 
 After setting these values and deploying, sign in at `https://<your-vercel-domain>/admin` using `ADMIN_USERNAME` and `ADMIN_PASSWORD`, then enter `ADMIN_OTP`. The same admin credentials are accepted by the shared login used across the three tool dashboards and grant administrator access to all supported tools. Customer accounts are created separately inside the admin console.
+
+If sign-in reports a Supabase/auth setup error, open `https://<your-vercel-domain>/api/access/health` (no login required). It reports only configuration booleans, not secret values. For `loginSchema: false`, verify the URL and server key belong to the same Supabase project and run `supabase/vernika_complete_schema.sql` there. After changing Vercel variables, redeploy so the deployment receives them.
 
 ## Automated Blogger
 

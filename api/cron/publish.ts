@@ -85,7 +85,7 @@ export default async function handler(req: any, res: any) {
     return res.status(401).json({ error: 'Unauthorized. Invalid CRON_SECRET.' });
   }
 
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || '';
   if (!process.env.SUPABASE_URL || !supabaseKey) {
     return res.status(500).json({ error: 'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in environment variables.' });
   }

@@ -76,8 +76,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, isDarkMode
           {/* Header */}
           <div className="text-center space-y-3 mb-6">
             <img
-              src="/Logo/VernikaWorkflow.png"
-              alt="Automated-Blogger"
+              src="https://vsybbtdfiozzcbcuvlpi.supabase.co/storage/v1/object/public/DATA/Logo/Automation%20workflow%20logo.png"
+              alt="Vernika Workflows"
               className="w-20 h-20 mx-auto object-contain rounded-xl"
             />
             <div>

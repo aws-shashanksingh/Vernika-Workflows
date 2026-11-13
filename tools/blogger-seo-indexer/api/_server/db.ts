@@ -66,7 +66,7 @@ function getDatabaseScope(): string {
 
 // Supabase credentials loaded securely from process.env (.env or Vercel environment variables)
 const DEFAULT_SUPABASE_URL = process.env.SUPABASE_URL || '';
-const DEFAULT_SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const DEFAULT_SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || '';
 
 // Ensure data folder exists safely
 try {

@@ -118,10 +118,10 @@ function isSupportedN8nUrl(value: unknown): value is string {
 }
 
 function getServiceClient(): SupabaseClient {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
   if (!url || !key) {
-    throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be configured.');
+    throw new Error('Set SUPABASE_URL and either SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY.');
   }
   if (!serviceClient) {
     serviceClient = createClient(url, key, {
@@ -363,20 +363,66 @@ async function recordActivity(
   if (error) throw error;
 }
 
+router.get('/api/access/health', async (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const encryptionKey = Buffer.from(process.env.CREDENTIAL_ENCRYPTION_KEY || '', 'base64');
+  const checks = {
+    supabaseUrl: Boolean(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL),
+    supabaseServerKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY),
+    adminUsername: Boolean(process.env.ADMIN_USERNAME),
+    adminPassword: Boolean(process.env.ADMIN_PASSWORD),
+    adminOtp: /^\d{6,10}$/.test(process.env.ADMIN_OTP || ''),
+    sessionSecret: (process.env.SESSION_SECRET || '').length >= 32,
+    credentialEncryptionKey: encryptionKey.length === 32,
+    loginSchema: false,
+  };
+
+  if (checks.supabaseUrl && checks.supabaseServerKey) {
+    try {
+      const client = getServiceClient();
+      const [attemptsResult, usersResult, sessionsResult, activityResult] = await Promise.all([
+        client.from('workflow_login_attempts').select('id').limit(1),
+        client.from('workflow_users').select('id').limit(1),
+        client.from('workflow_sessions').select('id').limit(1),
+        client.from('workflow_activity_logs').select('id').limit(1),
+      ]);
+      checks.loginSchema = !attemptsResult.error &&
+        !usersResult.error &&
+        !sessionsResult.error &&
+        !activityResult.error;
+    } catch (error) {
+      console.error('[Access] Health check failed:', error);
+    }
+  }
+
+  res.json({
+    checks,
+    readyForAdminLogin: checks.supabaseUrl &&
+      checks.supabaseServerKey &&
+      checks.adminUsername &&
+      checks.adminPassword &&
+      checks.adminOtp &&
+      checks.sessionSecret &&
+      checks.loginSchema,
+  });
+});
+
 router.post('/api/access/login', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   try {
     const username = String(req.body?.username || '').trim();
     const password = String(req.body?.password || '');
     const tool = getTool(req.body?.tool) || 'blogger';
-    const retryAfter = await loginRateLimit(req, 'login');
-    if (retryAfter) return res.status(429).json({ error: `Too many failed sign-in attempts. Try again in ${retryAfter} seconds.` });
     const adminUsername = process.env.ADMIN_USERNAME;
     const adminPassword = process.env.ADMIN_PASSWORD;
-
     if (!adminUsername || !adminPassword) {
-      return res.status(503).json({ error: 'Admin login is not configured. Set ADMIN_USERNAME and ADMIN_PASSWORD.' });
+      return res.status(503).json({ error: 'Admin login is not configured. Set ADMIN_USERNAME and ADMIN_PASSWORD in Vercel.' });
     }
+    if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32) {
+      return res.status(503).json({ error: 'Authentication is not configured. Set SESSION_SECRET to a random value of at least 32 characters in Vercel.' });
+    }
+    const retryAfter = await loginRateLimit(req, 'login');
+    if (retryAfter) return res.status(429).json({ error: `Too many failed sign-in attempts. Try again in ${retryAfter} seconds.` });
     if (safeEqual(username, adminUsername) && safeEqual(password, adminPassword)) {
       await recordLoginAttempt(req, 'login', true);
       const challengeId = sign({
@@ -423,7 +469,7 @@ router.post('/api/access/login', async (req, res) => {
     return res.json({ challengeId, requiresOtp: true });
   } catch (error) {
     console.error('[Access] Login failed:', error);
-    return res.status(503).json({ error: 'Unable to verify login right now. Check the Supabase and auth environment settings.' });
+    return res.status(503).json({ error: 'Login could not reach the configured Supabase project or required login tables. Check /api/access/health and confirm supabase/vernika_complete_schema.sql was run on the same project.' });
   }
 });
 
