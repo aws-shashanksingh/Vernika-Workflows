@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ArrowRight, CheckCircle2, AlertCircle, Mail, Linkedin, Instagram, ExternalLink } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowRight, CheckCircle2, AlertCircle, Mail, Linkedin, Instagram, ExternalLink, Download, Smartphone, X } from 'lucide-react';
 import { setWorkspaceStorageScope } from '../services/workspaceStorage';
 
 interface LoginPageProps {
@@ -17,6 +17,51 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, isDarkMode
   const [error, setError] = useState<string | null>(null);
 
   const [challengeId, setChallengeId] = useState('');
+
+  // PWA Install Prompt State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallBanner, setShowInstallBanner] = useState<boolean>(false);
+  const [installed, setInstalled] = useState<boolean>(false);
+  const [installHelpOpen, setInstallHelpOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    const isDismissed = sessionStorage.getItem('blogger_install_dismissed') === 'true';
+    if (!isDismissed) {
+      setShowInstallBanner(true);
+    }
+    const handleBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBanner(true);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setInstalled(true);
+      setShowInstallBanner(false);
+    }
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setShowInstallBanner(false);
+        setInstalled(true);
+      }
+      setDeferredPrompt(null);
+    } else {
+      setInstallHelpOpen(true);
+    }
+  };
+
+  const handleDismissInstall = () => {
+    setShowInstallBanner(false);
+    sessionStorage.setItem('blogger_install_dismissed', 'true');
+  };
 
   const handleStep1Submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -185,21 +230,35 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, isDarkMode
             <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
               Developed by Shashank Rajput
             </div>
-            <div className={`mt-5 rounded-xl border p-3 text-left ${isDarkMode ? 'border-slate-800 bg-slate-950/60' : 'border-slate-200 bg-slate-50'}`}>
-              <p className="text-[10px] font-black uppercase tracking-wider text-sky-500">Related tool</p>
-              <p className="mt-1 text-xs font-bold">Blogger Indexer</p>
-              <p className="mt-1 text-[11px] leading-relaxed text-slate-500">Submit published pages for search discovery and monitor their progress.</p>
-              <a href="/indexer/" className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-sky-600 dark:text-sky-400">
-                Open companion tool <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-            <div className={`mt-5 rounded-xl border p-3 text-left ${isDarkMode ? 'border-slate-800 bg-slate-950/60' : 'border-slate-200 bg-slate-50'}`}>
-              <p className="text-[10px] font-black uppercase tracking-wider text-violet-500">Related tool</p>
-              <p className="mt-1 text-xs font-bold">BlackHat - AUTOMATOR</p>
-              <p className="mt-1 text-[11px] leading-relaxed text-slate-500">Automate high-volume PDF creation and keyword scaling.</p>
-              <a href="/seo-pdf/" className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-violet-600 dark:text-violet-400">
-                Open BlackHat tool <ExternalLink className="h-3 w-3" />
-              </a>
+            {/* Switch Companion Tools */}
+            <div className="mt-5 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left">Switch Application</p>
+              <div className="grid grid-cols-2 gap-2">
+                <a
+                  href="/indexer/"
+                  className={`p-2.5 rounded-xl border transition flex flex-col text-left group ${
+                    isDarkMode ? 'border-slate-800 bg-slate-950/60 hover:bg-slate-800/60' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center justify-between text-xs font-bold text-emerald-500">
+                    <span>SEO Indexer</span>
+                    <ExternalLink className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+                  </div>
+                  <span className="text-[10px] text-slate-500 mt-0.5">Google URL Indexing</span>
+                </a>
+                <a
+                  href="/seo-pdf/"
+                  className={`p-2.5 rounded-xl border transition flex flex-col text-left group ${
+                    isDarkMode ? 'border-slate-800 bg-slate-950/60 hover:bg-slate-800/60' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center justify-between text-xs font-bold text-violet-500">
+                    <span>SEO Automator</span>
+                    <ExternalLink className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+                  </div>
+                  <span className="text-[10px] text-slate-500 mt-0.5">PDF Keyword Scaling</span>
+                </a>
+              </div>
             </div>
 
             <div className="flex items-center justify-center gap-3">
@@ -236,6 +295,72 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, isDarkMode
         </div>
       </div>
 
+      {/* Floating Bottom Popup for Installing as App / PWA */}
+      {showInstallBanner && !installed && (
+        <div className="fixed bottom-4 left-4 right-4 max-w-md mx-auto z-40 animate-fadeIn">
+          <div className={`p-3.5 backdrop-blur-md border rounded-2xl shadow-2xl flex items-center justify-between gap-3 ${
+            isDarkMode ? 'bg-slate-900/95 border-slate-800 text-white' : 'bg-white/95 border-slate-200 text-slate-900'
+          }`}>
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-500 shrink-0">
+                <Smartphone className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold truncate">Install Web App</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">Add Automated Blogger to home screen</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleInstallClick}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs transition-colors cursor-pointer shadow-sm"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Install</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleDismissInstall}
+                className={`p-1.5 rounded-xl transition-colors cursor-pointer ${
+                  isDarkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900'
+                }`}
+                title="Dismiss"
+                aria-label="Dismiss app install banner"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manual Install Instructions Dialog */}
+      {installHelpOpen && (
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+          <div className={`w-full max-w-md rounded-2xl border p-5 shadow-2xl ${
+            isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
+            <div className="flex items-center justify-between border-b border-inherit pb-3">
+              <h3 className="text-sm font-bold">Install Automated Blogger</h3>
+              <button type="button" onClick={() => setInstallHelpOpen(false)} aria-label="Close install instructions" className="rounded-lg p-1 text-slate-400 hover:text-slate-200">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <ul className="mt-3 space-y-2 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+              <li><strong>iPhone / iPad (Safari):</strong> Tap Share and select Add to Home Screen.</li>
+              <li><strong>Chrome / Edge Desktop:</strong> Click the Install icon in the address bar.</li>
+              <li><strong>Android (Chrome):</strong> Open browser menu (three dots) and tap Install app or Add to Home screen.</li>
+            </ul>
+            <div className="mt-4 flex justify-end">
+              <button type="button" onClick={() => setInstallHelpOpen(false)} className="rounded-xl bg-sky-600 px-4 py-2 text-xs font-bold text-white hover:bg-sky-500">
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

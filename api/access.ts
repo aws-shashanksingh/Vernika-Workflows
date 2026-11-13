@@ -380,6 +380,21 @@ async function recordActivity(
   if (error) throw error;
 }
 
+function getCleanAdminOtp(): string {
+  const raw = process.env.ADMIN_OTP || '';
+  return raw.replace(/^['"]|['"]$/g, '').trim();
+}
+
+function getCleanAdminPassword(): string {
+  const raw = process.env.ADMIN_PASSWORD || '';
+  return raw.replace(/^['"]|['"]$/g, '').trim();
+}
+
+function getCleanAdminUsername(): string {
+  const raw = process.env.ADMIN_USERNAME || 'rajputs';
+  return raw.replace(/^['"]|['"]$/g, '').trim();
+}
+
 router.get('/api/access/health', async (_req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   let encKeyOk = false;
@@ -389,12 +404,15 @@ router.get('/api/access/health', async (_req, res) => {
   } catch {
     encKeyOk = false;
   }
+  const cleanAdminOtp = getCleanAdminOtp();
+  const cleanAdminPass = getCleanAdminPassword();
+  const cleanAdminUser = getCleanAdminUsername();
   const checks = {
     supabaseUrl: Boolean(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL),
     supabaseServerKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY),
-    adminUsername: Boolean(process.env.ADMIN_USERNAME || 'rajputs'),
-    adminPassword: Boolean(process.env.ADMIN_PASSWORD),
-    adminOtp: /^\d{6,10}$/.test(process.env.ADMIN_OTP || ''),
+    adminUsername: Boolean(cleanAdminUser),
+    adminPassword: Boolean(cleanAdminPass),
+    adminOtp: cleanAdminOtp.length >= 4 && cleanAdminOtp.length <= 16,
     sessionSecret: (process.env.SESSION_SECRET || '').length >= 32,
     credentialEncryptionKey: encKeyOk,
     loginSchema: false,
@@ -440,8 +458,8 @@ router.post('/api/access/login', async (req, res) => {
     const password = String(req.body?.password || '');
     const portal = String(req.body?.portal || '').trim();
     const tool = getTool(req.body?.tool) || 'blogger';
-    const adminUsername = process.env.ADMIN_USERNAME || 'rajputs';
-    const adminPassword = process.env.ADMIN_PASSWORD;
+    const adminUsername = getCleanAdminUsername();
+    const adminPassword = getCleanAdminPassword();
     if (!adminPassword) {
       return res.status(503).json({ error: 'Admin login is not configured. Set ADMIN_PASSWORD in Vercel.' });
     }
@@ -524,8 +542,8 @@ router.post('/api/access/verify', async (req, res) => {
     let accountExpiresAt: string | undefined;
 
     if (challenge.role === 'admin') {
-      const adminOtp = process.env.ADMIN_OTP;
-      if (!adminOtp) return res.status(503).json({ error: 'Admin OTP is not configured. Set ADMIN_OTP.' });
+      const adminOtp = getCleanAdminOtp();
+      if (!adminOtp) return res.status(503).json({ error: 'Admin OTP is not configured. Set ADMIN_OTP in environment variables.' });
       if (!safeEqual(otp, adminOtp)) {
         await recordLoginAttempt(req, 'otp', false);
         return res.status(401).json({ error: 'Invalid verification code.' });
@@ -828,7 +846,8 @@ router.post('/api/access/unlock', async (req, res) => {
     if (!session) return res.status(401).json({ error: 'Session expired. Sign in again.' });
     const providedOtp = String(req.body?.otp || '').trim();
     if (session.role === 'admin') {
-      if (!process.env.ADMIN_OTP || !safeEqual(providedOtp, process.env.ADMIN_OTP)) {
+      const adminOtp = getCleanAdminOtp();
+      if (!adminOtp || !safeEqual(providedOtp, adminOtp)) {
         return res.status(401).json({ error: 'Invalid verification code.' });
       }
       return res.json({ success: true, role: 'admin', redirectTo: '/admin/' });

@@ -591,8 +591,12 @@ export default function AdminApp() {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl">
+      <div className={`min-h-screen transition-colors duration-200 flex items-center justify-center p-6 ${
+        theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'
+      }`}>
+        <div className={`max-w-md w-full rounded-2xl p-8 shadow-2xl border transition-all ${
+          theme === 'dark' ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+        }`}>
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
@@ -600,12 +604,14 @@ export default function AdminApp() {
               </div>
               <div>
                 <h1 className="text-xl font-bold tracking-tight">Admin Console</h1>
-                <p className="text-xs text-slate-400">Secure Administrative Gateway</p>
+                <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Secure Administrative Gateway</p>
               </div>
             </div>
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+              className={`p-2 rounded-lg transition ${
+                theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+              }`}
               title="Toggle theme"
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -626,7 +632,7 @@ export default function AdminApp() {
                 {!health.checks.supabaseUrl && <li>Missing SUPABASE_URL</li>}
                 {!health.checks.supabaseServerKey && <li>Missing SUPABASE_SERVICE_ROLE_KEY</li>}
                 {!health.checks.adminPassword && <li>Missing ADMIN_PASSWORD in environment</li>}
-                {!health.checks.adminOtp && <li>Missing or invalid ADMIN_OTP (6-10 digits)</li>}
+                {!health.checks.adminOtp && <li>Missing or invalid ADMIN_OTP</li>}
                 {!health.checks.loginSchema && <li>Database tables not created (run migration SQL)</li>}
               </ul>
             </div>
@@ -635,24 +641,28 @@ export default function AdminApp() {
           {!challengeId ? (
             <form onSubmit={submitLogin} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Admin Username</label>
+                <label className={`block text-xs font-medium mb-1 ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>Admin Username</label>
                 <input
                   type="text"
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500"
+                  className={`w-full px-3.5 py-2.5 rounded-xl text-sm border focus:outline-none focus:border-indigo-500 transition-colors ${
+                    theme === 'dark' ? 'bg-slate-950 border-slate-800 text-slate-100 placeholder:text-slate-600' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400'
+                  }`}
                   placeholder="Enter admin username"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Password</label>
+                <label className={`block text-xs font-medium mb-1 ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>Password</label>
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500"
+                  className={`w-full px-3.5 py-2.5 rounded-xl text-sm border focus:outline-none focus:border-indigo-500 transition-colors ${
+                    theme === 'dark' ? 'bg-slate-950 border-slate-800 text-slate-100 placeholder:text-slate-600' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400'
+                  }`}
                   placeholder="Enter admin password"
                 />
               </div>
@@ -666,19 +676,23 @@ export default function AdminApp() {
             </form>
           ) : (
             <form onSubmit={submitOtp} className="space-y-4">
-              <div className="p-3 bg-indigo-950/40 border border-indigo-500/30 rounded-xl text-xs text-indigo-300">
+              <div className={`p-3 rounded-xl text-xs border ${
+                theme === 'dark' ? 'bg-indigo-950/40 border-indigo-500/30 text-indigo-300' : 'bg-indigo-50 border-indigo-200 text-indigo-700'
+              }`}>
                 Enter your administrative verification code (OTP) configured in environment variables.
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Verification Code (OTP)</label>
+                <label className={`block text-xs font-medium mb-1 ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>Verification Code (OTP)</label>
                 <input
                   type="text"
                   required
-                  maxLength={10}
+                  maxLength={16}
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm tracking-widest text-center font-mono focus:outline-none focus:border-indigo-500"
-                  placeholder="000000"
+                  className={`w-full px-3.5 py-2.5 rounded-xl text-sm tracking-widest text-center font-mono border focus:outline-none focus:border-indigo-500 transition-colors ${
+                    theme === 'dark' ? 'bg-slate-950 border-slate-800 text-slate-100' : 'bg-slate-50 border-slate-300 text-slate-900'
+                  }`}
+                  placeholder="Enter OTP"
                 />
               </div>
               <button
@@ -691,7 +705,9 @@ export default function AdminApp() {
               <button
                 type="button"
                 onClick={() => setChallengeId('')}
-                className="w-full py-2 text-xs text-slate-400 hover:text-slate-200 transition"
+                className={`w-full py-2 text-xs transition ${
+                  theme === 'dark' ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-900'
+                }`}
               >
                 Back to Sign In
               </button>

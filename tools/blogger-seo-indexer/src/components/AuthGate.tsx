@@ -13,6 +13,7 @@ import {
   Download,
   X,
   Smartphone,
+  ExternalLink,
 } from 'lucide-react';
 
 import { safeJsonParse } from '../lib/api';
@@ -152,9 +153,11 @@ export const AuthGate: React.FC<AuthGateProps> = ({ onAuthenticated, lockNotice 
       <div className="w-full max-w-md relative z-10 my-auto">
         {/* Brand Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-neutral-900 border border-neutral-800 shadow-xl mb-4 group transition-all">
-            <ShieldCheck className="w-7 h-7 text-emerald-400 group-hover:scale-110 transition-transform" />
-          </div>
+          <img
+            src="https://vsybbtdfiozzcbcuvlpi.supabase.co/storage/v1/object/public/DATA/Logo/Automation%20workflow%20logo.png"
+            alt="Blogger SEO Indexer"
+            className="w-16 h-16 mx-auto object-contain rounded-2xl mb-4 shadow-xl"
+          />
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
             SEO INDEXER <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono font-medium">PRO</span>
           </h1>
@@ -288,8 +291,35 @@ export const AuthGate: React.FC<AuthGateProps> = ({ onAuthenticated, lockNotice 
             </form>
           )}
 
+          {/* Switch Companion Tools */}
+          <div className="mt-6 pt-5 border-t border-neutral-800/80 space-y-2">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Switch Application</p>
+            <div className="grid grid-cols-2 gap-2">
+              <a
+                href="/?login=true"
+                className="p-2.5 rounded-xl border border-neutral-800 bg-neutral-950/60 hover:bg-neutral-800/60 transition flex flex-col text-left group"
+              >
+                <div className="flex items-center justify-between text-xs font-bold text-sky-400">
+                  <span>Automated Blogger</span>
+                  <ExternalLink className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+                </div>
+                <span className="text-[10px] text-neutral-500 mt-0.5">AI Blog Publishing</span>
+              </a>
+              <a
+                href="/seo-pdf/"
+                className="p-2.5 rounded-xl border border-neutral-800 bg-neutral-950/60 hover:bg-neutral-800/60 transition flex flex-col text-left group"
+              >
+                <div className="flex items-center justify-between text-xs font-bold text-violet-400">
+                  <span>SEO Automator</span>
+                  <ExternalLink className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+                </div>
+                <span className="text-[10px] text-neutral-500 mt-0.5">PDF Keyword Scaling</span>
+              </a>
+            </div>
+          </div>
+
           {/* Developer Credits Section */}
-          <div className="mt-6 pt-5 border-t border-neutral-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+          <div className="mt-5 pt-4 border-t border-neutral-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <span className="text-neutral-400 font-medium">Developed by Shashank Rajput</span>
               <a href="/admin/" className="text-[11px] text-neutral-500 hover:text-emerald-400 hover:underline">

@@ -13,6 +13,7 @@ import {
   Mail,
   Instagram,
   Loader2,
+  ExternalLink,
 } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import { setWorkspaceStorageScope } from '../../../../src/services/workspaceStorage';
@@ -125,9 +126,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       {/* Centered Login Card */}
       <div className="w-full max-w-[420px] bg-white border border-slate-200/90 rounded-2xl shadow-xs p-7 sm:p-8 animate-scale-up">
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center mb-4">
-            <ShieldCheck className="w-6 h-6 text-blue-600" />
-          </div>
+          <img
+            src="https://vsybbtdfiozzcbcuvlpi.supabase.co/storage/v1/object/public/DATA/Logo/Automation%20workflow%20logo.png"
+            alt="SEO Automator"
+            className="w-16 h-16 object-contain rounded-2xl mb-4 shadow-sm"
+          />
           <h1 className="text-xl font-bold text-slate-900 tracking-tight">
             SEO AUTOMATOR
           </h1>
@@ -208,8 +211,35 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           </button>
         </form>
 
+        {/* Switch Companion Tools */}
+        <div className="mt-6 pt-5 border-t border-slate-100 space-y-2">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 text-left">Switch Application</p>
+          <div className="grid grid-cols-2 gap-2">
+            <a
+              href="/?login=true"
+              className="p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition flex flex-col text-left group"
+            >
+              <div className="flex items-center justify-between text-xs font-bold text-sky-600">
+                <span>Automated Blogger</span>
+                <ExternalLink className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+              </div>
+              <span className="text-[10px] text-slate-500 mt-0.5">AI Blog Publishing</span>
+            </a>
+            <a
+              href="/indexer/"
+              className="p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition flex flex-col text-left group"
+            >
+              <div className="flex items-center justify-between text-xs font-bold text-emerald-600">
+                <span>SEO Indexer</span>
+                <ExternalLink className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+              </div>
+              <span className="text-[10px] text-slate-500 mt-0.5">URL Google Indexing</span>
+            </a>
+          </div>
+        </div>
+
         {/* Developer Info Footer with LinkedIn, Gmail & Instagram Links */}
-        <div className="mt-6 pt-5 border-t border-slate-100 flex flex-col items-center gap-2.5">
+        <div className="mt-5 pt-4 border-t border-slate-100 flex flex-col items-center gap-2.5">
           <span className="text-[11px] font-medium text-slate-500">
             Developed by <strong className="text-slate-800">Shashank Rajput</strong>
           </span>

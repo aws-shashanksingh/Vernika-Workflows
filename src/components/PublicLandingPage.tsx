@@ -24,10 +24,12 @@ export const PublicLandingPage: React.FC<PublicLandingPageProps> = ({ onOpenDash
       {/* Modern Navigation */}
       <nav className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-md border-b transition-colors ${isDarkMode ? 'bg-slate-950/80 border-slate-800' : 'bg-white/80 border-slate-200'}`}>
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <button onClick={() => setPage('home')} className="flex items-center gap-3 group">
-            <div className="p-2 bg-sky-600 rounded-lg group-hover:scale-110 transition-transform shadow-lg shadow-sky-600/20">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
+          <button onClick={() => setPage('home')} className="flex items-center gap-2.5 group">
+            <img
+              src="https://vsybbtdfiozzcbcuvlpi.supabase.co/storage/v1/object/public/DATA/Logo/Vernikalogo.png"
+              alt="Vernika"
+              className="w-9 h-9 object-contain rounded-lg group-hover:scale-105 transition-transform"
+            />
             <span className="text-lg font-black tracking-tighter uppercase hidden sm:block">VERNIKA</span>
           </button>
           
@@ -310,9 +312,13 @@ export const PublicLandingPage: React.FC<PublicLandingPageProps> = ({ onOpenDash
       {/* Global Footer */}
       <footer className={`py-16 px-6 border-t transition-colors ${isDarkMode ? 'bg-slate-950 border-slate-900' : 'bg-white border-slate-100'}`}>
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
-          <div className="flex items-center gap-3 opacity-40 grayscale group hover:grayscale-0 transition-all">
-            <Zap className="w-5 h-5 text-sky-600" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em]">VERNIAK &copy; 2026</span>
+          <div className="flex items-center gap-2.5 opacity-60 group hover:opacity-100 transition-all">
+            <img
+              src="https://vsybbtdfiozzcbcuvlpi.supabase.co/storage/v1/object/public/DATA/Logo/Vernikalogo.png"
+              alt="Vernika"
+              className="w-5 h-5 object-contain rounded"
+            />
+            <span className="text-[10px] font-black uppercase tracking-[0.2em]">VERNIKA &copy; 2026</span>
           </div>
           <div className="flex items-center gap-4">
             <a href="mailto:aws.shashanksingh@gmail.com" className="opacity-60 hover:opacity-100 transition-opacity"><Mail className="w-5 h-5" /></a>

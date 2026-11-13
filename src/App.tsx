@@ -112,7 +112,14 @@ export default function App() {
     }
   });
   const [isSessionLocked, setIsSessionLocked] = useState<boolean>(false);
-  const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
+  const [isLoggingIn, setIsLoggingIn] = useState<boolean>(() => {
+    try {
+      const url = new URL(window.location.href);
+      return url.searchParams.get('login') === 'true' || window.location.pathname === '/login' || window.location.hash === '#login';
+    } catch {
+      return false;
+    }
+  });
   const [showPublicPage, setShowPublicPage] = useState<boolean>(false);
   const [returnOtpRequired, setReturnOtpRequired] = useState(false);
   const [accountProfileName, setAccountProfileName] = useState('');
@@ -120,6 +127,25 @@ export default function App() {
   const [accountRole, setAccountRole] = useState<'admin' | 'user' | null>(null);
   const [expiryModalDismissed, setExpiryModalDismissed] = useState(false);
   const lastActivityRef = useRef<number>(Date.now());
+
+  useEffect(() => {
+    const handleLocation = () => {
+      try {
+        const url = new URL(window.location.href);
+        if (url.searchParams.get('login') === 'true' || window.location.pathname === '/login' || window.location.hash === '#login') {
+          setIsLoggingIn(true);
+        }
+      } catch {
+        // ignore
+      }
+    };
+    window.addEventListener('popstate', handleLocation);
+    window.addEventListener('hashchange', handleLocation);
+    return () => {
+      window.removeEventListener('popstate', handleLocation);
+      window.removeEventListener('hashchange', handleLocation);
+    };
+  }, []);
 
   useEffect(() => {
     fetch('/api/access/session', { credentials: 'include', cache: 'no-store' })
@@ -138,6 +164,11 @@ export default function App() {
           setAccountExpiresAt(session.accountExpiresAt || null);
           setAccountRole('user');
           setIsAuthenticated(true);
+          const wasActive = sessionStorage.getItem('vernika_session_active');
+          if (!wasActive) {
+            setIsSessionLocked(true);
+          }
+          sessionStorage.setItem('vernika_session_active', 'true');
         } else {
           if (tabUnlocked) sessionStorage.removeItem('vernika_tab_tool');
           setAccountRole(null);
@@ -1793,7 +1824,12 @@ export default function App() {
           onLoginSuccess={() => {
             window.location.reload();
           }}
-          onBackToPublic={() => setIsLoggingIn(false)}
+          onBackToPublic={() => {
+            if (window.location.search.includes('login=true') || window.location.hash === '#login') {
+              window.history.replaceState({}, '', '/');
+            }
+            setIsLoggingIn(false);
+          }}
           isDarkMode={isDarkMode}
         />
       );
