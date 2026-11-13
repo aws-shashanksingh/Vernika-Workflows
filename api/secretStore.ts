@@ -7,9 +7,19 @@ export type EncryptedSecret = {
 };
 
 function encryptionKey(): Buffer {
-  const key = Buffer.from(process.env.CREDENTIAL_ENCRYPTION_KEY || '', 'base64');
+  const keyStr = (process.env.CREDENTIAL_ENCRYPTION_KEY || '').trim().replace(/^['"]|['"]$/g, '');
+  if (!keyStr) {
+    throw new Error('MISSING_ENCRYPTION_KEY: CREDENTIAL_ENCRYPTION_KEY environment variable is not set.');
+  }
+  let key: Buffer;
+  if (/^[0-9a-fA-F]{64}$/.test(keyStr)) {
+    key = Buffer.from(keyStr, 'hex');
+  } else {
+    const cleanB64 = keyStr.replace(/-/g, '+').replace(/_/g, '/');
+    key = Buffer.from(cleanB64, 'base64');
+  }
   if (key.length !== 32) {
-    throw new Error('CREDENTIAL_ENCRYPTION_KEY must be a base64-encoded 32-byte key.');
+    throw new Error(`INVALID_ENCRYPTION_KEY_LENGTH: CREDENTIAL_ENCRYPTION_KEY must resolve to 32 bytes (got ${key.length} bytes).`);
   }
   return key;
 }

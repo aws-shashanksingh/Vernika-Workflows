@@ -382,7 +382,13 @@ async function recordActivity(
 
 router.get('/api/access/health', async (_req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-  const encryptionKey = Buffer.from(process.env.CREDENTIAL_ENCRYPTION_KEY || '', 'base64');
+  let encKeyOk = false;
+  try {
+    const testEnc = encryptSecret('test');
+    encKeyOk = Boolean(testEnc.ciphertext);
+  } catch {
+    encKeyOk = false;
+  }
   const checks = {
     supabaseUrl: Boolean(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL),
     supabaseServerKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY),
@@ -390,23 +396,26 @@ router.get('/api/access/health', async (_req, res) => {
     adminPassword: Boolean(process.env.ADMIN_PASSWORD),
     adminOtp: /^\d{6,10}$/.test(process.env.ADMIN_OTP || ''),
     sessionSecret: (process.env.SESSION_SECRET || '').length >= 32,
-    credentialEncryptionKey: encryptionKey.length === 32,
+    credentialEncryptionKey: encKeyOk,
     loginSchema: false,
+    workflowSecretsTable: false,
   };
 
   if (checks.supabaseUrl && checks.supabaseServerKey) {
     try {
       const client = getServiceClient();
-      const [attemptsResult, usersResult, sessionsResult, activityResult] = await Promise.all([
+      const [attemptsResult, usersResult, sessionsResult, activityResult, secretsResult] = await Promise.all([
         client.from('workflow_login_attempts').select('id').limit(1),
         client.from('workflow_users').select('id').limit(1),
         client.from('workflow_sessions').select('id').limit(1),
         client.from('workflow_activity_logs').select('id').limit(1),
+        client.from('workflow_secrets').select('id').limit(1),
       ]);
       checks.loginSchema = !attemptsResult.error &&
         !usersResult.error &&
         !sessionsResult.error &&
         !activityResult.error;
+      checks.workflowSecretsTable = !secretsResult.error;
     } catch (error) {
       console.error('[Access] Health check failed:', error);
     }
@@ -891,6 +900,95 @@ router.get('/api/admin/users', requireAdmin, async (_req, res) => {
   }
 });
 
+async function seedDefaultCredentialsForUser(newUserId: string, assignedTools: Tool[]): Promise<void> {
+  try {
+    const client = getServiceClient();
+    const { data: adminSecrets } = await client
+      .from('workflow_secrets')
+      .select('tool,name,encrypted_value,iv,auth_tag')
+      .eq('user_id', ADMIN_DATA_OWNER_ID);
+
+    const adminSecretMap = new Map<string, { tool: string; encrypted_value: string; iv: string; auth_tag: string }>();
+    for (const s of (adminSecrets || [])) {
+      adminSecretMap.set(`${s.tool}:${s.name}`, {
+        tool: s.tool,
+        encrypted_value: s.encrypted_value,
+        iv: s.iv,
+        auth_tag: s.auth_tag,
+      });
+    }
+
+    const defaults: Array<{ tool: Tool; name: string; value?: string }> = [];
+
+    if (assignedTools.includes('blogger')) {
+      if (process.env.GOOGLE_REFRESH_TOKEN) defaults.push({ tool: 'blogger', name: 'GOOGLE_REFRESH_TOKEN', value: process.env.GOOGLE_REFRESH_TOKEN });
+      if (process.env.GEMINI_API_KEY) defaults.push({ tool: 'blogger', name: 'GEMINI_API_KEY', value: process.env.GEMINI_API_KEY });
+      if (process.env.DEEPSEEK_API_KEY) defaults.push({ tool: 'blogger', name: 'DEEPSEEK_API_KEY', value: process.env.DEEPSEEK_API_KEY });
+      if (process.env.POLLINATIONS_API_KEY) defaults.push({ tool: 'blogger', name: 'POLLINATIONS_API_KEY', value: process.env.POLLINATIONS_API_KEY });
+      
+      const n8nConfigVal = JSON.stringify({
+        webhookUrl: process.env.N8N_WEBHOOK_URL || 'https://automated-blogger.app.n8n.cloud/webhook/seo-blog-generator',
+        mcpUrl: process.env.N8N_MCP_URL || 'https://automated-blogger.app.n8n.cloud/mcp-server/http',
+        apiKey: process.env.N8N_API_KEY || '',
+      });
+      defaults.push({ tool: 'blogger', name: 'n8n-config', value: n8nConfigVal });
+    }
+
+    if (assignedTools.includes('indexer') || assignedTools.includes('seo-pdf')) {
+      if (process.env.INDEXNOW_KEY) defaults.push({ tool: 'seo-pdf', name: 'INDEXNOW_KEY', value: process.env.INDEXNOW_KEY });
+      if (process.env.GITHUB_TOKEN) defaults.push({ tool: 'seo-pdf', name: 'GITHUB_TOKEN', value: process.env.GITHUB_TOKEN });
+      if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+        defaults.push({ tool: 'indexer', name: 'GOOGLE_SERVICE_ACCOUNT_JSON', value: process.env.GOOGLE_SERVICE_ACCOUNT_JSON });
+        defaults.push({ tool: 'seo-pdf', name: 'GOOGLE_SERVICE_ACCOUNT_JSON', value: process.env.GOOGLE_SERVICE_ACCOUNT_JSON });
+      }
+    }
+
+    for (const tool of assignedTools) {
+      for (const [key, adminSecret] of adminSecretMap.entries()) {
+        if (adminSecret.tool === tool) {
+          const parts = key.split(':');
+          const name = parts.slice(1).join(':');
+          await client.from('workflow_secrets').upsert({
+            user_id: newUserId,
+            tool,
+            name,
+            encrypted_value: adminSecret.encrypted_value,
+            iv: adminSecret.iv,
+            auth_tag: adminSecret.auth_tag,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'user_id,tool,name' });
+        }
+      }
+    }
+
+    for (const def of defaults) {
+      if (!assignedTools.includes(def.tool)) continue;
+      const { data: existing } = await client
+        .from('workflow_secrets')
+        .select('id')
+        .eq('user_id', newUserId)
+        .eq('tool', def.tool)
+        .eq('name', def.name)
+        .maybeSingle();
+
+      if (!existing && def.value) {
+        const encrypted = encryptSecret(def.value);
+        await client.from('workflow_secrets').upsert({
+          user_id: newUserId,
+          tool: def.tool,
+          name: def.name,
+          encrypted_value: encrypted.ciphertext,
+          iv: encrypted.iv,
+          auth_tag: encrypted.authTag,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id,tool,name' });
+      }
+    }
+  } catch (err) {
+    console.error('[Access] Failed to seed default credentials for new user:', err);
+  }
+}
+
 router.post('/api/admin/users', requireAdmin, async (req, res) => {
   const profileName = String(req.body?.profile_name || '').trim();
   const username = String(req.body?.username || '').trim();
@@ -921,6 +1019,7 @@ router.post('/api/admin/users', requireAdmin, async (req, res) => {
       .select('id,profile_name,username,status,expires_at,assigned_tools,created_at,updated_at')
       .single();
     if (error) throw error;
+    await seedDefaultCredentialsForUser(String(data.id), assignedTools);
     await recordActivity(String(data.id), 'account_created', req, { assigned_tools: assignedTools });
     return res.status(201).json(publicUser(data));
   } catch (error) {
@@ -1454,9 +1553,10 @@ router.post('/api/admin/users/:id/keys', requireAdmin, async (req, res) => {
     if (error) throw error;
     await recordActivity(req.params.id, 'credential_updated', req, { tool, name });
     return res.json(data);
-  } catch (error) {
+  } catch (error: any) {
     console.error('[Admin] Credential save failed:', error);
-    return res.status(503).json({ error: 'Could not securely save the credential. Check the encryption key and database setup.' });
+    const msg = error instanceof Error ? error.message : String(error);
+    return res.status(503).json({ error: `Could not securely save the credential: ${msg}` });
   }
 });
 
@@ -1486,6 +1586,125 @@ router.delete('/api/admin/users/:id/keys/:keyId', requireAdmin, async (req, res)
   } catch (error) {
     console.error('[Admin] Credential delete failed:', error);
     return res.status(503).json({ error: 'Could not delete the credential.' });
+  }
+});
+
+const managedTables = [
+  'workflow_users',
+  'workflow_sessions',
+  'workflow_activity_logs',
+  'workflow_secrets',
+  'service_accounts',
+  'url_logs',
+  'requests',
+  'blogs',
+  'blog_posts',
+  'blog_templates',
+  'topics',
+  'workflow_login_attempts',
+];
+
+router.get('/api/admin/database/tables', requireAdmin, async (_req, res) => {
+  try {
+    const client = getServiceClient();
+    const results = await Promise.all(managedTables.map(async (table) => {
+      const { count, error } = await client.from(table).select('id', { count: 'exact', head: true });
+      return {
+        table_name: table,
+        row_count: error ? 0 : (count || 0),
+        error: error ? error.message : null,
+      };
+    }));
+    return res.json(results);
+  } catch (error) {
+    console.error('[Admin] Database tables load failed:', error);
+    return res.status(503).json({ error: 'Could not load database tables summary.' });
+  }
+});
+
+router.get('/api/admin/database/records', requireAdmin, async (req, res) => {
+  const table = String(req.query.table || '').trim();
+  const limit = Math.min(500, Math.max(1, Number(req.query.limit || 100)));
+  const offset = Math.max(0, Number(req.query.offset || 0));
+  const search = String(req.query.search || '').trim();
+
+  if (!managedTables.includes(table)) {
+    return res.status(400).json({ error: 'Invalid or unsupported table name.' });
+  }
+
+  try {
+    const client = getServiceClient();
+    const query = client.from(table).select('*').order('created_at', { ascending: false }).range(offset, offset + limit - 1);
+    const { data, error } = await query;
+    if (error) {
+      const { data: fbData, error: fbError } = await client.from(table).select('*').range(offset, offset + limit - 1);
+      if (fbError) throw fbError;
+      return res.json({ table, data: fbData || [], count: (fbData || []).length });
+    }
+    let rows = data || [];
+    if (search) {
+      const q = search.toLowerCase();
+      rows = rows.filter((r) => JSON.stringify(r).toLowerCase().includes(q));
+    }
+    return res.json({ table, data: rows, count: rows.length });
+  } catch (error) {
+    console.error('[Admin] Database table records load failed:', error);
+    return res.status(503).json({ error: error instanceof Error ? error.message : 'Could not load table records.' });
+  }
+});
+
+router.delete('/api/admin/database/records', requireAdmin, async (req, res) => {
+  const { table, id } = req.body || {};
+  if (!managedTables.includes(table) || !id) {
+    return res.status(400).json({ error: 'Valid table name and record ID are required.' });
+  }
+  try {
+    const client = getServiceClient();
+    const { error } = await client.from(table).delete().eq('id', id);
+    if (error) throw error;
+    await recordActivity(null, 'database_record_deleted', req, { table, record_id: id });
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('[Admin] Database record delete failed:', error);
+    return res.status(503).json({ error: error instanceof Error ? error.message : 'Could not delete record.' });
+  }
+});
+
+router.get('/api/admin/users/storage-breakdown', requireAdmin, async (_req, res) => {
+  try {
+    const client = getServiceClient();
+    const [usersRes, secretsRes, sessionsRes, logsRes, serviceAccountsRes] = await Promise.all([
+      client.from('workflow_users').select('id,profile_name,username,status,expires_at,created_at'),
+      client.from('workflow_secrets').select('user_id,tool,name'),
+      client.from('workflow_sessions').select('user_id,revoked_at,expires_at'),
+      client.from('workflow_activity_logs').select('user_id,event_type'),
+      client.from('service_accounts').select('user_id,is_active'),
+    ]);
+
+    const users = usersRes.data || [];
+    const breakdown = users.map((u) => {
+      const uid = String(u.id);
+      const userSecrets = (secretsRes.data || []).filter((s) => s.user_id === uid);
+      const userSessions = (sessionsRes.data || []).filter((s) => s.user_id === uid);
+      const userLogs = (logsRes.data || []).filter((l) => l.user_id === uid);
+      const userSa = (serviceAccountsRes.data || []).filter((sa) => sa.user_id === uid);
+
+      const estimatedBytes = (userSecrets.length * 2048) + (userLogs.length * 1024) + (userSessions.length * 512) + (userSa.length * 2048);
+
+      return {
+        ...u,
+        secretsCount: userSecrets.length,
+        sessionsCount: userSessions.length,
+        logsCount: userLogs.length,
+        serviceAccountsCount: userSa.length,
+        estimatedBytes,
+      };
+    });
+
+    return res.json(breakdown);
+  } catch (error) {
+    console.error('[Admin] User storage breakdown failed:', error);
+    return res.status(503).json({ error: 'Could not load user storage breakdown.' });
   }
 });
 

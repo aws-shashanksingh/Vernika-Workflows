@@ -467,20 +467,26 @@ async function renderDocxToPdfViaDom(docxBytes: Uint8Array): Promise<Uint8Array 
     for (let i = 0; i < pageElements.length; i++) {
       const pageEl = pageElements[i];
       // Compute page dimensions in pt (96 px = 72 pt)
-      const widthPx = Math.ceil(pageEl.offsetWidth || pageEl.getBoundingClientRect().width || 816);
-      const heightPx = Math.ceil(pageEl.offsetHeight || pageEl.getBoundingClientRect().height || 1056);
+      const widthPx = Math.max(200, Math.ceil(pageEl.offsetWidth || pageEl.getBoundingClientRect().width || 816));
+      const heightPx = Math.max(200, Math.ceil(pageEl.offsetHeight || pageEl.getBoundingClientRect().height || 1056));
       const widthPt = Math.round((widthPx * 72) / 96);
       const heightPt = Math.round((heightPx * 72) / 96);
 
       // Render high-resolution crisp image (pixelRatio: 2)
-      const imgDataUrl = await toJpeg(pageEl, {
-        quality: 0.98,
-        pixelRatio: 2,
-        width: widthPx,
-        height: heightPx,
-        backgroundColor: '#ffffff',
-        cacheBust: true,
-      });
+      let imgDataUrl: string;
+      try {
+        imgDataUrl = await toJpeg(pageEl, {
+          quality: 0.95,
+          pixelRatio: 1.5,
+          width: widthPx,
+          height: heightPx,
+          backgroundColor: '#ffffff',
+          cacheBust: false,
+        });
+      } catch (imgErr) {
+        console.warn('html-to-image render failed, falling back to vector PDF:', imgErr);
+        return null;
+      }
 
       if (!pdfDoc) {
         pdfDoc = new jsPDF({
@@ -552,7 +558,7 @@ function renderBlocksToVectorPdf(
   for (const block of blocks) {
     if (block.type === 'table') {
       const numCols = Math.max(1, ...block.rows.map((r) => r.length));
-      const colWidth = usableWidth / numCols;
+      const colWidth = Math.max(30, usableWidth / numCols);
       const cellPadding = 5;
       const tableFontSize = 9.5;
 

@@ -321,8 +321,9 @@ app.post('/api/upload-profile-avatar', async (req, res) => {
   // 1. Save directly to repository files (public/tanu-singh-avatar.jpg, src/assets/..., and src/lib/defaultAvatar.ts)
   const savedPaths: string[] = [];
   const candidateFiles = [
+    path.join(process.cwd(), 'public', 'seo-pdf', 'tanu-singh-avatar.jpg'),
+    path.join(process.cwd(), 'tools', 'seo-automation-pdf', 'public', 'seo-pdf', 'tanu-singh-avatar.jpg'),
     path.join(process.cwd(), 'public', 'tanu-singh-avatar.jpg'),
-    path.join(process.cwd(), 'src', 'assets', 'images', 'tanu_singh_avatar_1790678043096.jpg'),
   ];
 
   for (const targetFile of candidateFiles) {
@@ -335,16 +336,22 @@ app.post('/api/upload-profile-avatar', async (req, res) => {
     }
   }
 
-  try {
-    const defaultAvatarTsPath = path.join(process.cwd(), 'src', 'lib', 'defaultAvatar.ts');
-    fs.writeFileSync(
-      defaultAvatarTsPath,
-      `// Auto-generated embedded data URI for user profile icon\nexport const DEFAULT_TANU_AVATAR_DATA_URI = "${imageDataUri}";\n`,
-      'utf-8'
-    );
-    savedPaths.push('src/lib/defaultAvatar.ts');
-  } catch {
-    // ignore if read-only
+  const avatarPaths = [
+    path.join(process.cwd(), 'tools', 'seo-automation-pdf', 'src', 'lib', 'defaultAvatar.ts'),
+    path.join(process.cwd(), 'src', 'lib', 'defaultAvatar.ts'),
+  ];
+  for (const defaultAvatarTsPath of avatarPaths) {
+    try {
+      fs.mkdirSync(path.dirname(defaultAvatarTsPath), { recursive: true });
+      fs.writeFileSync(
+        defaultAvatarTsPath,
+        `// Auto-generated embedded data URI for user profile icon\nexport const DEFAULT_TANU_AVATAR_DATA_URI = "${imageDataUri}";\n`,
+        'utf-8'
+      );
+      savedPaths.push(path.relative(process.cwd(), defaultAvatarTsPath));
+    } catch {
+      // ignore if read-only
+    }
   }
 
   // 2. Stage in local git repository if .git exists so AI Studio / GitHub sync includes it automatically
@@ -659,6 +666,9 @@ app.post('/api/sync-google-doc', async (req, res) => {
         throw serviceAccountErr;
       }
       fullText = await txtRes.text();
+      if (fullText.trim().toLowerCase().startsWith('<!doctype html') || fullText.trim().toLowerCase().startsWith('<html')) {
+        throw new Error('Google Doc is private or requires authentication. Please configure valid Google Cloud Service Account credentials or make the Google Doc publicly accessible ("Anyone with the link can view").');
+      }
       usedPublicFallback = true;
 
       try {
@@ -667,7 +677,10 @@ app.post('/api/sync-google-doc', async (req, res) => {
         });
         if (docxRes.ok) {
           const arrBuf = await docxRes.arrayBuffer();
-          docxBase64 = Buffer.from(arrBuf).toString('base64');
+          const bufStr = Buffer.from(arrBuf).toString('utf8', 0, 60).toLowerCase();
+          if (!bufStr.includes('<!doctype') && !bufStr.includes('<html')) {
+            docxBase64 = Buffer.from(arrBuf).toString('base64');
+          }
         }
       } catch {
         // Ignore public docx export error if txt succeeded

@@ -785,6 +785,11 @@ export default function App() {
       const freshBuf = await handleSyncGoogleDoc();
       if (freshBuf) {
         activeBuffer = freshBuf;
+      } else {
+        if (!activeBuffer) {
+          setIsGenerating(false);
+          return;
+        }
       }
     }
 
@@ -954,27 +959,22 @@ export default function App() {
     item: GeneratedFileItem,
     format: 'pdf' | 'docx' = 'pdf'
   ) => {
-    if (format === 'pdf') {
-      const blob = new Blob([item.pdfBytes.buffer as ArrayBuffer], {
-        type: 'application/pdf',
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${item.name}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } else {
-      const blob = new Blob([item.docxBytes.buffer as ArrayBuffer], {
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${item.name}.docx`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
+    const bytes = format === 'pdf' ? item.pdfBytes : item.docxBytes;
+    const rawBuffer = bytes.buffer.slice(
+      bytes.byteOffset,
+      bytes.byteOffset + bytes.byteLength
+    ) as ArrayBuffer;
+    const mimeType =
+      format === 'pdf'
+        ? 'application/pdf'
+        : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    const blob = new Blob([rawBuffer], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${item.name}.${format}`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   // Direct Share to 3rd-Party Apps + Auto-Download (Single PDF/DOCX or Full ZIP)
@@ -991,10 +991,14 @@ export default function App() {
         ? 'application/pdf'
         : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
     const bytes = format === 'pdf' ? item.pdfBytes : item.docxBytes;
+    const rawBuffer = bytes.buffer.slice(
+      bytes.byteOffset,
+      bytes.byteOffset + bytes.byteLength
+    ) as ArrayBuffer;
 
     // 2. Attempt native OS / Browser file share to 3rd-party apps
     try {
-      const fileObj = new File([bytes.buffer as ArrayBuffer], fileName, {
+      const fileObj = new File([rawBuffer], fileName, {
         type: mimeType,
       });
       const nav = navigator as Navigator & {
@@ -2328,31 +2332,6 @@ export default function App() {
           />
         )}
         </main>
-
-        {/* Mobile Bottom Quick Navigation Bar for Any Device Support */}
-        <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-slate-200 px-1 py-1 grid grid-cols-6 gap-0.5 shadow-lg">
-          {navItems.map((item) => {
-            const IconComponent = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => handleSelectTab(item.id)}
-                className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-lg transition-colors cursor-pointer ${
-                  isActive
-                    ? 'text-blue-600 bg-blue-50/80 font-bold'
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                <IconComponent className="w-4 h-4 shrink-0" />
-                <span className="text-[10px] leading-tight mt-1 truncate max-w-full">
-                  {item.shortLabel}
-                </span>
-              </button>
-            );
-          })}
-        </nav>
       </div>
 
       {/* Airline Manager Modal */}
