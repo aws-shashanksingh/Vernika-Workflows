@@ -17,19 +17,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, isDarkMode
   const [error, setError] = useState<string | null>(null);
 
   const [challengeId, setChallengeId] = useState('');
-  const [adminSessionActive, setAdminSessionActive] = useState(false);
-
-  React.useEffect(() => {
-    if (otpOnly) return;
-    fetch('/api/access/session', { credentials: 'include', cache: 'no-store' })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.authenticated && data?.role === 'admin') {
-          setAdminSessionActive(true);
-        }
-      })
-      .catch(() => undefined);
-  }, [otpOnly]);
 
   const handleStep1Submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,21 +94,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, isDarkMode
             </div>
           </div>
 
-          {/* Active Admin Session Banner */}
-          {adminSessionActive && (
-            <div className="mb-4 rounded-xl border border-sky-500/30 bg-sky-500/10 p-3 text-xs">
-              <p className="font-bold text-sky-500">Administrator session is active</p>
-              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                Admin accounts manage users, keys, security, and storage inside the Admin Console.
-              </p>
-              <a
-                href="/admin/"
-                className="mt-2 inline-flex items-center gap-1 rounded-lg bg-sky-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sky-500"
-              >
-                Open Admin Console <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-          )}
+
 
           {/* Error Message */}
           {error && (
@@ -228,11 +201,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, isDarkMode
                 Open BlackHat tool <ExternalLink className="h-3 w-3" />
               </a>
             </div>
-            <div className="pt-2">
-              <a href="/admin/" className="text-[11px] font-semibold text-slate-500 hover:text-sky-500 hover:underline">
-                Administrator Console (/admin/)
-              </a>
-            </div>
+
             <div className="flex items-center justify-center gap-3">
               <a
                 href="https://mail.google.com/mail/u/0/?fs=1&to=aws.shashanksingh@gmail.com&tf=cm"
