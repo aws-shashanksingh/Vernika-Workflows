@@ -65,7 +65,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ username: username.trim(), password, tool: 'seo-pdf' }),
+        body: JSON.stringify({ username: username.trim(), password, tool: 'seo-pdf', portal: 'seo-pdf' }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Invalid username or password.');
@@ -96,6 +96,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Invalid verification OTP. Please try again.');
+      if (data.role === 'admin' || data.redirectTo) {
+        window.location.replace(data.redirectTo || '/admin/');
+        return;
+      }
+      sessionStorage.setItem('vernika_tab_tool', 'seo-pdf');
       setWorkspaceStorageScope(data.workspaceId || 'guest');
       setShowOtpModal(false);
       onAuthenticated();
@@ -237,6 +242,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               <Instagram className="w-4 h-4" />
             </a>
           </div>
+          <a href="/admin/" className="text-[11px] font-medium text-slate-400 hover:text-blue-600 hover:underline">
+            Admin Console
+          </a>
         </div>
       </div>
 

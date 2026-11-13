@@ -104,6 +104,13 @@ const INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 export default function App() {
   // Authentication & Session Security (Autolocks on page refresh or tab close)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isCheckingSession, setIsCheckingSession] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('vernika_tab_tool') === 'blogger';
+    } catch {
+      return false;
+    }
+  });
   const [isSessionLocked, setIsSessionLocked] = useState<boolean>(false);
   const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
   const [showPublicPage, setShowPublicPage] = useState<boolean>(false);
@@ -118,14 +125,30 @@ export default function App() {
     fetch('/api/access/session', { credentials: 'include', cache: 'no-store' })
       .then(async (response) => {
         const session = await response.json();
-        if (response.ok && session.authenticated && session.tools?.includes('blogger')) {
+        const tabUnlocked = sessionStorage.getItem('vernika_tab_tool') === 'blogger';
+        if (
+          response.ok &&
+          session.authenticated &&
+          session.role === 'user' &&
+          session.tools?.includes('blogger') &&
+          (!session.activeTool || session.activeTool === 'blogger') &&
+          tabUnlocked
+        ) {
           setAccountProfileName(session.profileName || session.username || '');
           setAccountExpiresAt(session.accountExpiresAt || null);
-          setAccountRole(session.role === 'admin' || session.role === 'user' ? session.role : null);
+          setAccountRole('user');
           setIsAuthenticated(true);
+        } else {
+          if (tabUnlocked) sessionStorage.removeItem('vernika_tab_tool');
+          setAccountRole(null);
+          setIsAuthenticated(false);
         }
       })
-      .catch((error) => console.error('Session verification failed:', error));
+      .catch((error) => {
+        console.error('Session verification failed:', error);
+        setIsAuthenticated(false);
+      })
+      .finally(() => setIsCheckingSession(false));
   }, []);
 
   // Theme state - Eye-friendly LIGHT THEME by default
@@ -677,12 +700,16 @@ export default function App() {
 
 
   const handleFullLogout = async () => {
+    sessionStorage.removeItem('vernika_tab_tool');
     try {
       await fetch('/api/access/logout', { method: 'POST', credentials: 'include' });
     } catch (error) {
       console.error('Could not end the Vernika session:', error);
     }
     setIsAuthenticated(false);
+    setIsLoggingIn(false);
+    setShowPublicPage(false);
+    setReturnOtpRequired(false);
     setIsSessionLocked(false);
   };
 
@@ -1749,6 +1776,14 @@ export default function App() {
     a.offices.some((o: AirlineOffice) => o.name.toLowerCase().includes(airlineFilter.toLowerCase()))
   );
 
+  if (isCheckingSession) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center text-xs font-semibold ${isDarkMode ? 'bg-slate-950 text-slate-400' : 'bg-slate-100 text-slate-600'}`}>
+        Verifying workspace session...
+      </div>
+    );
+  }
+
   // If user is not authenticated on this tab load/refresh, show the Public Landing Page by default
   // (Ensures Google OAuth reviewers & Search Console can view the complete public application)
   if (!isAuthenticated) {
@@ -1777,7 +1812,11 @@ export default function App() {
       <LoginPage
         otpOnly
         isDarkMode={isDarkMode}
-        onLoginSuccess={() => { setReturnOtpRequired(false); setShowPublicPage(false); }}
+        onLoginSuccess={() => {
+          sessionStorage.setItem('vernika_tab_tool', 'blogger');
+          setReturnOtpRequired(false);
+          setShowPublicPage(false);
+        }}
         onBackToPublic={() => setReturnOtpRequired(false)}
       />
     );
@@ -1787,7 +1826,12 @@ export default function App() {
   if (showPublicPage) {
     return (
       <PublicLandingPage 
-        onOpenDashboard={() => setReturnOtpRequired(true)}
+        onOpenDashboard={() => {
+          sessionStorage.removeItem('vernika_tab_tool');
+          setShowPublicPage(false);
+          setIsAuthenticated(false);
+          setIsLoggingIn(true);
+        }}
         isDarkMode={isDarkMode}
         onToggleTheme={toggleTheme}
       />
@@ -1817,7 +1861,24 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-3">
-          
+          {accountProfileName && (
+            <div className={`hidden md:flex items-center gap-2 rounded-xl border px-2.5 py-1.5 ${
+              isDarkMode ? 'border-slate-800 bg-slate-950/70' : 'border-slate-200 bg-slate-50'
+            }`}>
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-sky-600 text-[10px] font-black text-white">
+                {accountProfileName.slice(0, 2).toUpperCase()}
+              </div>
+              <div className="leading-tight">
+                <p className="text-[11px] font-bold">{accountProfileName}</p>
+                {accountExpiresAt && (
+                  <p className="text-[10px] text-slate-500">
+                    Exp {new Date(accountExpiresAt).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Sidebar Toggle */}
           <button type="button" onClick={() => setIsSidebarOpen(current => !current)} className={`rounded-lg border p-2 ${isDarkMode ? 'border-slate-700 text-slate-300' : 'border-slate-300 text-slate-700'}`} aria-label="Toggle workflow navigation">
             <Settings className="h-4 w-4" />
@@ -1886,6 +1947,21 @@ export default function App() {
         isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
       }`}>
         <div className="mb-5 flex items-center justify-between"><span className="text-sm font-black">Navigation</span><button type="button" onClick={() => setIsSidebarOpen(false)} aria-label="Close navigation"><ChevronLeft className="h-4 w-4" /></button></div>
+        {accountProfileName && (
+          <div className={`mb-5 flex items-center gap-3 rounded-xl border p-3 ${
+            isDarkMode ? 'border-slate-800 bg-slate-950/70' : 'border-slate-200 bg-slate-50'
+          }`}>
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-600 text-xs font-black text-white">
+              {accountProfileName.slice(0, 2).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-xs font-bold">{accountProfileName}</p>
+              <p className="truncate text-[10px] text-slate-500">
+                {accountExpiresAt ? `Active until ${new Date(accountExpiresAt).toLocaleDateString()}` : 'Active Workspace'}
+              </p>
+            </div>
+          </div>
+        )}
         <p className="mb-3 px-2 text-[10px] font-black uppercase tracking-wider text-slate-500">Workflow</p>
         <nav className="space-y-1 text-xs font-semibold">
           {([
@@ -1916,7 +1992,6 @@ export default function App() {
           <button onClick={() => setShowPublicPage(true)} className="block w-full rounded-lg px-3 py-2 text-left hover:bg-sky-500/10 hover:text-sky-500">Public Page & Verification</button>
           <a href="/indexer/" className="flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-sky-500/10 hover:text-sky-500">Blogger Indexer <ExternalLink className="ml-1 inline h-3 w-3" /></a>
           <a href="/seo-pdf/" className="flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-sky-500/10 hover:text-sky-500">SEO PDF Studio <ExternalLink className="ml-1 inline h-3 w-3" /></a>
-          <a href="/admin/" className="block rounded-lg px-3 py-2 hover:bg-sky-500/10 hover:text-sky-500">Admin Console</a>
         </nav>
       </aside>
 

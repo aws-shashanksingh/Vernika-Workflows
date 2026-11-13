@@ -120,13 +120,27 @@ export default function App() {
     fetch('/api/access/session', { credentials: 'include', cache: 'no-store' })
       .then(async (response) => {
         const data = await response.json();
-        if (response.ok && data.authenticated && data.tools?.includes('seo-pdf')) {
+        const tabUnlocked = sessionStorage.getItem('vernika_tab_tool') === 'seo-pdf';
+        if (
+          response.ok &&
+          data.authenticated &&
+          data.role === 'user' &&
+          data.tools?.includes('seo-pdf') &&
+          (!data.activeTool || data.activeTool === 'seo-pdf') &&
+          tabUnlocked
+        ) {
           setAccountProfileName(data.profileName || data.username || '');
           setAccountExpiresAt(data.accountExpiresAt || null);
           setIsAuthenticated(true);
+        } else {
+          if (tabUnlocked) sessionStorage.removeItem('vernika_tab_tool');
+          setIsAuthenticated(false);
         }
       })
-      .catch((error) => console.error('Session verification failed:', error))
+      .catch((error) => {
+        console.error('Session verification failed:', error);
+        setIsAuthenticated(false);
+      })
       .finally(() => setIsCheckingSession(false));
   }, []);
   const [hasSavedWorkspace] = useState<boolean>(() => {
@@ -1148,6 +1162,7 @@ export default function App() {
   };
 
   const handleLogout = async () => {
+    sessionStorage.removeItem('vernika_tab_tool');
     await fetch('/api/access/logout', { method: 'POST', credentials: 'include' });
     localStorage.removeItem('seo_studio_auth_session');
     sessionStorage.removeItem('seo_studio_auth_session');

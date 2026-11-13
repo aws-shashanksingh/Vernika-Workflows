@@ -32,6 +32,15 @@ export const Header: React.FC<HeaderProps> = ({ status, profileName, onLogout })
 
         {/* Right Actions */}
         <div className="flex items-center gap-3">
+          {profileName && (
+            <div className="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-xl bg-neutral-950 border border-neutral-800">
+              <div className="w-6 h-6 rounded-full bg-emerald-500 text-neutral-950 font-bold text-[10px] flex items-center justify-center">
+                {profileName.slice(0, 2).toUpperCase()}
+              </div>
+              <span className="text-xs font-semibold text-neutral-200">{profileName}</span>
+            </div>
+          )}
+
           {/* Active Pool Indicator */}
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-950 border border-neutral-800 text-xs font-mono text-neutral-300">
             <Activity className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />

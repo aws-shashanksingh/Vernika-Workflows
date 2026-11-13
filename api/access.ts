@@ -13,6 +13,7 @@ type Session = {
   profileName?: string;
   accountExpiresAt?: string;
   role: 'admin' | 'user';
+  activeTool?: Tool;
   tools: Tool[];
   exp: number;
 };
@@ -258,9 +259,12 @@ async function loadSession(token: string): Promise<Session | null> {
     userId: typeof payload.uid === 'string' ? payload.uid : undefined,
     username: String(payload.username || ''),
     role: payload.role as Session['role'],
-    tools: Array.isArray(payload.tools)
-      ? payload.tools.filter((tool): tool is Tool => supportedTools.includes(tool as Tool))
-      : [],
+    activeTool: payload.role === 'user' ? (getTool(payload.activeTool) || undefined) : undefined,
+    tools: payload.role === 'admin'
+      ? []
+      : Array.isArray(payload.tools)
+        ? payload.tools.filter((tool): tool is Tool => supportedTools.includes(tool as Tool))
+        : [],
     exp: Number(payload.exp),
   };
   if (!session.username || (session.role === 'user' && (!session.id || !payload.uid))) return null;
@@ -319,7 +323,12 @@ export function requireToolAccess(tool: Tool) {
     try {
       const session = await verifyAccessToken(getRequestAccessToken(req));
       if (!session) return res.status(401).json({ error: 'Your session is invalid or expired. Please sign in again.' });
-      if (!session.tools.includes(tool)) return res.status(403).json({ error: 'This account does not have access to this tool.' });
+      if (session.role !== 'user' || !session.tools.includes(tool)) {
+        return res.status(403).json({ error: 'Sign in with a customer account assigned to this tool.' });
+      }
+      if (session.activeTool && session.activeTool !== tool) {
+        return res.status(403).json({ error: `Sign in on the ${tool} login screen to access this tool.` });
+      }
       res.locals.workflowSession = session;
       return workflowRequestContext.run(session, () =>
         withDatabaseScope(session.userId || ADMIN_DATA_OWNER_ID, next),
@@ -420,6 +429,7 @@ router.post('/api/access/login', async (req, res) => {
   try {
     const username = String(req.body?.username || '').trim();
     const password = String(req.body?.password || '');
+    const portal = String(req.body?.portal || '').trim();
     const tool = getTool(req.body?.tool) || 'blogger';
     const adminUsername = process.env.ADMIN_USERNAME || 'rajputs';
     const adminPassword = process.env.ADMIN_PASSWORD;
@@ -437,11 +447,17 @@ router.post('/api/access/login', async (req, res) => {
         kind: 'challenge',
         role: 'admin',
         username,
-        tools: supportedTools,
+        portal: portal || 'admin',
+        tools: [],
         exp: Date.now() + CHALLENGE_TTL_MS,
         nonce: crypto.randomBytes(16).toString('hex'),
       });
-      return res.json({ challengeId, requiresOtp: true });
+      return res.json({ challengeId, requiresOtp: true, role: 'admin' });
+    }
+
+    if (portal === 'admin') {
+      await recordLoginAttempt(req, 'login', false);
+      return res.status(403).json({ error: 'Only administrator accounts can sign into the Admin Console.' });
     }
 
     const client = getServiceClient();
@@ -474,7 +490,7 @@ router.post('/api/access/login', async (req, res) => {
       exp: Date.now() + CHALLENGE_TTL_MS,
       nonce: crypto.randomBytes(16).toString('hex'),
     });
-    return res.json({ challengeId, requiresOtp: true });
+    return res.json({ challengeId, requiresOtp: true, role: 'user' });
   } catch (error) {
     console.error('[Access] Login failed:', error);
     return res.status(503).json({ error: 'Login could not reach the configured Supabase project or required login tables. Check /api/access/health and confirm supabase/vernika_complete_schema.sql was run on the same project.' });
@@ -494,6 +510,10 @@ router.post('/api/access/verify', async (req, res) => {
 
     let tools: Tool[] = [];
     let userId: string | null = null;
+    let activeTool: Tool | undefined;
+    let profileName: string | undefined;
+    let accountExpiresAt: string | undefined;
+
     if (challenge.role === 'admin') {
       const adminOtp = process.env.ADMIN_OTP;
       if (!adminOtp) return res.status(503).json({ error: 'Admin OTP is not configured. Set ADMIN_OTP.' });
@@ -501,12 +521,12 @@ router.post('/api/access/verify', async (req, res) => {
         await recordLoginAttempt(req, 'otp', false);
         return res.status(401).json({ error: 'Invalid verification code.' });
       }
-      tools = supportedTools;
+      tools = [];
     } else if (challenge.role === 'user' && typeof challenge.uid === 'string') {
       const client = getServiceClient();
       const { data: user, error } = await client
         .from('workflow_users')
-        .select('id,username,otp_hash,status,expires_at,assigned_tools')
+        .select('id,profile_name,username,otp_hash,status,expires_at,assigned_tools')
         .eq('id', challenge.uid)
         .maybeSingle();
       if (error) throw error;
@@ -528,6 +548,9 @@ router.post('/api/access/verify', async (req, res) => {
         return res.status(403).json({ error: 'This account does not have access to the selected tool.' });
       }
       userId = String(user.id);
+      activeTool = selectedTool;
+      profileName = user.profile_name;
+      accountExpiresAt = user.expires_at;
     } else {
       return res.status(400).json({ error: 'Invalid login challenge.' });
     }
@@ -540,12 +563,15 @@ router.post('/api/access/verify', async (req, res) => {
       uid: userId || undefined,
       sid: sessionId,
       username: String(challenge.username),
+      activeTool,
       tools,
       exp: expiresAt,
       nonce: crypto.randomBytes(16).toString('hex'),
     });
 
-    if (userId && sessionId) {
+    if (challenge.role === 'admin') {
+      await recordActivity(null, 'admin_login', req, { portal: String(challenge.portal || 'admin') });
+    } else if (userId && sessionId) {
       const client = getServiceClient();
       const now = new Date().toISOString();
       const { error: revokeError } = await client
@@ -567,7 +593,7 @@ router.post('/api/access/verify', async (req, res) => {
       });
       if (insertError) throw insertError;
       sessionLastTouch.set(sessionId, Date.now());
-      await recordActivity(userId, 'login', req, { tool: getTool(challenge.tool) });
+      await recordActivity(userId, 'login', req, { tool: activeTool });
     }
 
     setSessionCookie(res, token);
@@ -575,10 +601,14 @@ router.post('/api/access/verify', async (req, res) => {
       authenticated: true,
       role: challenge.role,
       username: String(challenge.username),
+      profileName,
+      accountExpiresAt,
+      activeTool,
       tools,
       userId,
       workspaceId: userId || `admin-${hashValue(String(challenge.username)).slice(0, 16)}`,
       expiresAt,
+      ...(challenge.role === 'admin' ? { redirectTo: '/admin/' } : {}),
     });
   } catch (error) {
     console.error('[Access] OTP verification failed:', error);
@@ -587,6 +617,7 @@ router.post('/api/access/verify', async (req, res) => {
 });
 
 router.get('/api/access/session', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   try {
     const session = await verifyAccessToken(getRequestAccessToken(req));
     if (!session) return res.json({ authenticated: false });
@@ -594,6 +625,7 @@ router.get('/api/access/session', async (req, res) => {
       authenticated: true,
       ...session,
       workspaceId: session.userId || `admin-${hashValue(session.username).slice(0, 16)}`,
+      ...(session.role === 'admin' ? { redirectTo: '/admin/' } : {}),
     });
   } catch (error) {
     console.error('[Access] Session lookup failed:', error);
@@ -790,19 +822,19 @@ router.post('/api/access/unlock', async (req, res) => {
       if (!process.env.ADMIN_OTP || !safeEqual(providedOtp, process.env.ADMIN_OTP)) {
         return res.status(401).json({ error: 'Invalid verification code.' });
       }
-    } else {
-      const client = getServiceClient();
-      const { data: user, error } = await client
-        .from('workflow_users')
-        .select('otp_hash')
-        .eq('username', session.username)
-        .maybeSingle();
-      if (error) throw error;
-      if (!user || !verifyPassword(providedOtp, user.otp_hash)) {
-        return res.status(401).json({ error: 'Invalid verification code.' });
-      }
+      return res.json({ success: true, role: 'admin', redirectTo: '/admin/' });
     }
-    return res.json({ success: true });
+    const client = getServiceClient();
+    const { data: user, error } = await client
+      .from('workflow_users')
+      .select('otp_hash')
+      .eq('username', session.username)
+      .maybeSingle();
+    if (error) throw error;
+    if (!user || !verifyPassword(providedOtp, user.otp_hash)) {
+      return res.status(401).json({ error: 'Invalid verification code.' });
+    }
+    return res.json({ success: true, role: 'user', activeTool: session.activeTool });
   } catch (error) {
     console.error('[Access] Session unlock failed:', error);
     return res.status(503).json({ error: 'Unable to verify session right now.' });
@@ -1028,6 +1060,121 @@ router.get('/api/admin/logs', requireAdmin, async (_req, res) => {
   }
 });
 
+router.get('/api/admin/active-users', requireAdmin, async (_req, res) => {
+  try {
+    const client = getServiceClient();
+    const now = new Date().toISOString();
+    const { data: activeSessions, error } = await client
+      .from('workflow_sessions')
+      .select('id,user_id,device_info,ip_address,created_at,last_active_at,expires_at,workflow_users(id,profile_name,username,status,expires_at,assigned_tools)')
+      .is('revoked_at', null)
+      .gt('expires_at', now)
+      .order('last_active_at', { ascending: false })
+      .limit(500);
+    if (error) throw error;
+    const rows = (activeSessions || []).map((record) => {
+      const startMs = Date.parse(record.created_at);
+      const endIso = record.last_active_at || now;
+      return {
+        ...record,
+        duration_seconds: Math.max(0, Math.floor((Date.parse(endIso) - startMs) / 1000)),
+      };
+    });
+    return res.json(rows);
+  } catch (error) {
+    console.error('[Admin] Active users load failed:', error);
+    return res.status(503).json({ error: 'Could not load active users.' });
+  }
+});
+
+router.get('/api/admin/security', requireAdmin, async (_req, res) => {
+  try {
+    const client = getServiceClient();
+    const now = new Date().toISOString();
+    const twoDaysLater = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString();
+    const [activeRes, attemptsRes, overdueRes, expiringRes] = await Promise.all([
+      client.from('workflow_sessions').select('id', { count: 'exact', head: true }).is('revoked_at', null).gt('expires_at', now),
+      client.from('workflow_login_attempts').select('id,attempts,locked_until,expires_at,created_at').order('created_at', { ascending: false }).limit(200),
+      client.from('workflow_users').select('id,profile_name,username,status,expires_at').eq('status', 'active').lte('expires_at', now),
+      client.from('workflow_users').select('id,profile_name,username,status,expires_at').eq('status', 'active').gt('expires_at', now).lte('expires_at', twoDaysLater),
+    ]);
+    if (attemptsRes.error) throw attemptsRes.error;
+    if (overdueRes.error) throw overdueRes.error;
+    if (expiringRes.error) throw expiringRes.error;
+    return res.json({
+      activeSessionsCount: activeRes.count || 0,
+      lockedAttempts: attemptsRes.data || [],
+      overdueActiveUsers: overdueRes.data || [],
+      expiringSoonUsers: expiringRes.data || [],
+    });
+  } catch (error) {
+    console.error('[Admin] Security overview failed:', error);
+    return res.status(503).json({ error: 'Could not load security management status.' });
+  }
+});
+
+router.post('/api/admin/security/clear-attempts', requireAdmin, async (req, res) => {
+  try {
+    const client = getServiceClient();
+    const attemptId = typeof req.body?.id === 'string' ? req.body.id : null;
+    const query = client.from('workflow_login_attempts').delete({ count: 'exact' });
+    const { count, error } = attemptId ? await query.eq('id', attemptId) : await query.neq('id', '');
+    if (error) throw error;
+    await recordActivity(null, 'attempts_cleared', req, { count: count || 0, id: attemptId || 'all' });
+    return res.json({ success: true, cleared: count || 0 });
+  } catch (error) {
+    console.error('[Admin] Clear attempts failed:', error);
+    return res.status(503).json({ error: 'Could not clear login attempt locks.' });
+  }
+});
+
+router.post('/api/admin/security/revoke-all', requireAdmin, async (req, res) => {
+  try {
+    const client = getServiceClient();
+    const now = new Date().toISOString();
+    const { count, error } = await client
+      .from('workflow_sessions')
+      .update({ revoked_at: now, last_active_at: now }, { count: 'exact' })
+      .is('revoked_at', null);
+    if (error) throw error;
+    sessionLastTouch.clear();
+    sessionCache.clear();
+    await recordActivity(null, 'all_sessions_revoked', req, { count: count || 0 });
+    return res.json({ success: true, revoked: count || 0 });
+  } catch (error) {
+    console.error('[Admin] Revoke all sessions failed:', error);
+    return res.status(503).json({ error: 'Could not revoke active sessions.' });
+  }
+});
+
+router.post('/api/admin/security/sync-expired', requireAdmin, async (req, res) => {
+  try {
+    const client = getServiceClient();
+    const now = new Date().toISOString();
+    const { data: updatedUsers, error } = await client
+      .from('workflow_users')
+      .update({ status: 'expired', updated_at: now })
+      .eq('status', 'active')
+      .lte('expires_at', now)
+      .select('id');
+    if (error) throw error;
+    const ids = (updatedUsers || []).map((row) => String(row.id));
+    if (ids.length) {
+      await client
+        .from('workflow_sessions')
+        .update({ revoked_at: now, last_active_at: now })
+        .in('user_id', ids)
+        .is('revoked_at', null);
+      sessionCache.clear();
+    }
+    await recordActivity(null, 'overdue_accounts_expired', req, { count: ids.length });
+    return res.json({ success: true, expiredCount: ids.length });
+  } catch (error) {
+    console.error('[Admin] Sync expired accounts failed:', error);
+    return res.status(503).json({ error: 'Could not synchronize overdue accounts.' });
+  }
+});
+
 router.get('/api/admin/usage', requireAdmin, async (_req, res) => {
   try {
     const client = getServiceClient();
@@ -1041,23 +1188,38 @@ router.get('/api/admin/usage', requireAdmin, async (_req, res) => {
       'url_logs',
       'requests',
       'blogs',
+      'blog_posts',
+      'blog_templates',
+      'topics',
     ] as const;
     const results = await Promise.all(tables.map(async (table) => {
       const { count, error } = await client.from(table).select('id', { count: 'exact', head: true });
-      if (error) throw new Error(`Could not count ${table}: ${error.message}`);
+      if (error) return [table, 0] as const;
       return [table, count || 0] as const;
     }));
-    const { data: storageByTable, error: storageError } = await client.rpc('vernika_storage_usage');
-    if (storageError) throw new Error(`Could not load database storage sizes: ${storageError.message}`);
+    const [secretsRes, inactiveSaRes, storageRes] = await Promise.all([
+      client.from('workflow_secrets').select('id,user_id,workflow_users(status,expires_at)'),
+      client.from('service_accounts').select('id', { count: 'exact', head: true }).eq('is_active', false),
+      client.rpc('vernika_storage_usage'),
+    ]);
+    if (storageRes.error) throw new Error(`Could not load database storage sizes: ${storageRes.error.message}`);
+    const unusedSecretsCount = (secretsRes.data || []).filter((row) => {
+      const user = Array.isArray(row.workflow_users) ? row.workflow_users[0] : row.workflow_users;
+      if (!user) return true;
+      return user.status !== 'active' || Date.parse(user.expires_at) <= Date.now();
+    }).length;
+    const storageByTable = storageRes.data || [];
     return res.json({
       measuredAt: new Date().toISOString(),
       rowsByTable: Object.fromEntries(results),
       totalRows: results.reduce((total, [, count]) => total + count, 0),
-      storageByTable: storageByTable || [],
-      totalStorageBytes: (storageByTable || []).reduce(
+      storageByTable,
+      totalStorageBytes: storageByTable.reduce(
         (total: number, row: { total_bytes?: number }) => total + Number(row.total_bytes || 0),
         0,
       ),
+      unusedSecretsCount,
+      inactiveServiceAccountsCount: inactiveSaRes.count || 0,
     });
   } catch (error) {
     console.error('[Admin] Usage report failed:', error);
@@ -1067,8 +1229,10 @@ router.get('/api/admin/usage', requireAdmin, async (_req, res) => {
 
 router.post('/api/admin/cleanup', requireAdmin, async (req, res) => {
   const rawScope = String(req.body?.scope || 'security');
-  const scope: 'security' | 'logs' | 'all' =
-    rawScope === 'logs' || rawScope === 'all' ? rawScope : 'security';
+  const scope: 'security' | 'logs' | 'unused_keys' | 'data' | 'all' =
+    rawScope === 'logs' || rawScope === 'unused_keys' || rawScope === 'data' || rawScope === 'all'
+      ? rawScope
+      : 'security';
   try {
     const client = getServiceClient();
     const now = new Date().toISOString();
@@ -1088,7 +1252,7 @@ router.post('/api/admin/cleanup', requireAdmin, async (req, res) => {
       deleted.expiredLoginAttempts = expiredAttempts.count || 0;
     }
 
-    if (scope === 'logs' || scope === 'all') {
+    if (scope === 'logs' || scope === 'data' || scope === 'all') {
       const [oldActivityLogs, oldUrlLogs, oldRequests] = await Promise.all([
         client.from('workflow_activity_logs').delete({ count: 'exact' }).lt('created_at', cutoff30Days),
         client.from('url_logs').delete({ count: 'exact' }).lt('created_at', cutoff30Days),
@@ -1101,11 +1265,135 @@ router.post('/api/admin/cleanup', requireAdmin, async (req, res) => {
       deleted.oldWorkflowRequests = oldRequests.count || 0;
     }
 
+    if (scope === 'unused_keys' || scope === 'all') {
+      const [inactiveUsersRes, inactiveSaRes] = await Promise.all([
+        client.from('workflow_users').select('id,status,expires_at'),
+        client.from('service_accounts').delete({ count: 'exact' }).eq('is_active', false),
+      ]);
+      if (inactiveUsersRes.error) throw inactiveUsersRes.error;
+      if (inactiveSaRes.error) throw inactiveSaRes.error;
+      const staleUserIds = (inactiveUsersRes.data || [])
+        .filter((u) => u.status !== 'active' || Date.parse(u.expires_at) <= Date.now())
+        .map((u) => String(u.id));
+      let deletedUnusedSecrets = 0;
+      if (staleUserIds.length) {
+        const { count, error: secretErr } = await client
+          .from('workflow_secrets')
+          .delete({ count: 'exact' })
+          .in('user_id', staleUserIds);
+        if (secretErr) throw secretErr;
+        deletedUnusedSecrets = count || 0;
+      }
+      deleted.unusedCustomerKeys = deletedUnusedSecrets;
+      deleted.inactiveServiceAccounts = inactiveSaRes.count || 0;
+    }
+
     await recordActivity(null, 'safe_cleanup_completed', req, { scope, ...deleted });
     return res.json({ success: true, scope, deleted });
   } catch (error) {
     console.error('[Admin] Safe cleanup failed:', error);
     return res.status(503).json({ error: 'Could not clean obsolete records.' });
+  }
+});
+
+router.get('/api/admin/keys', requireAdmin, async (_req, res) => {
+  try {
+    const client = getServiceClient();
+    const [secretsRes, accountsRes, usersRes] = await Promise.all([
+      client
+        .from('workflow_secrets')
+        .select('id,user_id,tool,name,created_at,updated_at,workflow_users(profile_name,username,status,expires_at)')
+        .order('updated_at', { ascending: false })
+        .limit(500),
+      client
+        .from('service_accounts')
+        .select('id,user_id,project_name,client_email,daily_count,last_reset_date,is_active,admin_managed,created_at,updated_at')
+        .order('created_at', { ascending: false })
+        .limit(500),
+      client
+        .from('workflow_users')
+        .select('id,profile_name,username,status,expires_at'),
+    ]);
+    if (secretsRes.error) throw secretsRes.error;
+    if (accountsRes.error) throw accountsRes.error;
+    if (usersRes.error) throw usersRes.error;
+
+    const usersById = new Map((usersRes.data || []).map((user) => [String(user.id), user]));
+    const secrets = (secretsRes.data || []).map((row) => {
+      const user = Array.isArray(row.workflow_users) ? row.workflow_users[0] : row.workflow_users;
+      const isUserActive = Boolean(user && user.status === 'active' && Date.parse(user.expires_at) > Date.now());
+      return {
+        id: row.id,
+        user_id: row.user_id,
+        tool: row.tool,
+        name: row.name,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        profile_name: user?.profile_name || 'Unknown',
+        username: user?.username || '',
+        user_status: user ? (user.status === 'active' && Date.parse(user.expires_at) <= Date.now() ? 'expired' : user.status) : 'orphan',
+        is_unused: !isUserActive,
+      };
+    });
+    const serviceAccounts = (accountsRes.data || []).map((row) => {
+      const user = usersById.get(String(row.user_id));
+      const isUserActive = Boolean(user && user.status === 'active' && Date.parse(user.expires_at) > Date.now());
+      return {
+        ...row,
+        profile_name: user?.profile_name || (row.user_id === ADMIN_DATA_OWNER_ID ? 'Legacy System Pool' : 'Unknown'),
+        username: user?.username || '',
+        is_unused: !row.is_active || (Boolean(user) && !isUserActive),
+      };
+    });
+
+    return res.json({ secrets, serviceAccounts });
+  } catch (error) {
+    console.error('[Admin] All keys load failed:', error);
+    return res.status(503).json({ error: 'Could not load saved credentials overview.' });
+  }
+});
+
+router.delete('/api/admin/keys/secret/:keyId', requireAdmin, async (req, res) => {
+  try {
+    const client = getServiceClient();
+    const { data: existing, error: lookupError } = await client
+      .from('workflow_secrets')
+      .select('id,user_id,tool,name')
+      .eq('id', req.params.keyId)
+      .maybeSingle();
+    if (lookupError) throw lookupError;
+    if (!existing) return res.status(404).json({ error: 'Credential not found.' });
+    if (existing.tool === 'indexer' && existing.name === 'GOOGLE_SERVICE_ACCOUNT_JSON') {
+      await client.from('service_accounts').delete().eq('user_id', existing.user_id).eq('admin_managed', true);
+    }
+    const { error } = await client.from('workflow_secrets').delete().eq('id', req.params.keyId);
+    if (error) throw error;
+    await recordActivity(String(existing.user_id), 'credential_deleted', req, { tool: existing.tool, name: existing.name });
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('[Admin] Secret delete failed:', error);
+    return res.status(503).json({ error: 'Could not delete saved credential.' });
+  }
+});
+
+router.delete('/api/admin/keys/service-account/:id', requireAdmin, async (req, res) => {
+  try {
+    const client = getServiceClient();
+    const { data: existing, error: lookupError } = await client
+      .from('service_accounts')
+      .select('id,user_id,project_name,client_email')
+      .eq('id', req.params.id)
+      .maybeSingle();
+    if (lookupError) throw lookupError;
+    if (!existing) return res.status(404).json({ error: 'Service account not found.' });
+    const { error } = await client.from('service_accounts').delete().eq('id', req.params.id);
+    if (error) throw error;
+    const userExists = existing.user_id && existing.user_id !== ADMIN_DATA_OWNER_ID ? String(existing.user_id) : null;
+    await recordActivity(userExists, 'service_account_deleted', req, { project_name: existing.project_name, client_email: existing.client_email });
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('[Admin] Service account delete failed:', error);
+    return res.status(503).json({ error: 'Could not delete service account.' });
   }
 });
 
@@ -1136,6 +1424,17 @@ router.post('/api/admin/users/:id/keys', requireAdmin, async (req, res) => {
   };
   if (!tool || !supportedCredentials[tool].has(name) || !value || value.length > 65536) {
     return res.status(400).json({ error: 'Choose a supported credential name and provide a value no larger than 64 KB.' });
+  }
+  if (name === 'GOOGLE_SERVICE_ACCOUNT_JSON' || name === 'n8n-config') {
+    try {
+      const parsed = JSON.parse(value);
+      if (!parsed || typeof parsed !== 'object') throw new Error('Invalid JSON object');
+      if (name === 'GOOGLE_SERVICE_ACCOUNT_JSON' && (!parsed.client_email || !parsed.private_key)) {
+        return res.status(400).json({ error: 'Service account JSON must contain client_email and private_key.' });
+      }
+    } catch {
+      return res.status(400).json({ error: `${name} must contain valid JSON.` });
+    }
   }
   try {
     const encrypted = encryptSecret(value);

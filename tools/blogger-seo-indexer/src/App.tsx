@@ -34,11 +34,19 @@ export default function App() {
     try {
       const res = await apiFetch('/api/access/session');
       const data = await safeJsonParse(res);
-      if (data.authenticated && data.tools?.includes('indexer')) {
+      const tabUnlocked = sessionStorage.getItem('vernika_tab_tool') === 'indexer';
+      if (
+        data.authenticated &&
+        data.role === 'user' &&
+        data.tools?.includes('indexer') &&
+        (!data.activeTool || data.activeTool === 'indexer') &&
+        tabUnlocked
+      ) {
         setProfileName(data.profileName || data.username || '');
         setAccountExpiresAt(data.accountExpiresAt || null);
         setIsAuthenticated(true);
       } else {
+        if (tabUnlocked) sessionStorage.removeItem('vernika_tab_tool');
         clearAuthToken();
         setIsAuthenticated(false);
       }
@@ -54,6 +62,7 @@ export default function App() {
 
   // Inactivity auto-lock monitor (10 minutes)
   const handleLogout = useCallback(async (notice?: string) => {
+    sessionStorage.removeItem('vernika_tab_tool');
     try {
       await apiFetch('/api/access/logout', { method: 'POST' });
     } catch {

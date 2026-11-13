@@ -3,9 +3,16 @@ import { getRequestAccessToken, verifyAccessToken } from '../../../../api/access
 
 export async function handleCheckSession(req: Request, res: Response) {
   const session = await verifyAccessToken(getRequestAccessToken(req));
+  const allowed = Boolean(
+    session &&
+    session.role === 'user' &&
+    session.tools.includes('indexer') &&
+    (!session.activeTool || session.activeTool === 'indexer'),
+  );
   return res.json({
-    authenticated: Boolean(session?.tools.includes('indexer')),
+    authenticated: allowed,
     role: session?.role,
+    activeTool: session?.activeTool,
   });
 }
 
@@ -19,8 +26,8 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     if (!session) {
       return res.status(401).json({ error: 'Your session is invalid or expired. Please sign in again.' });
     }
-    if (!session.tools.includes('indexer')) {
-      return res.status(403).json({ error: 'This account does not have access to the indexer.' });
+    if (session.role !== 'user' || !session.tools.includes('indexer') || (session.activeTool && session.activeTool !== 'indexer')) {
+      return res.status(403).json({ error: 'Sign in on the Indexer login screen with an account assigned to this tool.' });
     }
     res.locals.workflowSession = session;
     return next();

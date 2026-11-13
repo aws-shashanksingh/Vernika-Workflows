@@ -96,7 +96,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({ onAuthenticated, lockNotice 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ username: username.trim(), password, tool: 'indexer' }),
+        body: JSON.stringify({ username: username.trim(), password, tool: 'indexer', portal: 'indexer' }),
       });
       const data = await safeJsonParse(res);
 
@@ -127,6 +127,12 @@ export const AuthGate: React.FC<AuthGateProps> = ({ onAuthenticated, lockNotice 
       });
       const data = await safeJsonParse(res);
 
+      if (data.role === 'admin' || data.redirectTo) {
+        window.location.replace(data.redirectTo || '/admin/');
+        return;
+      }
+
+      sessionStorage.setItem('vernika_tab_tool', 'indexer');
       setWorkspaceStorageScope(data.workspaceId || 'guest');
       onAuthenticated();
       window.location.reload();
@@ -284,7 +290,12 @@ export const AuthGate: React.FC<AuthGateProps> = ({ onAuthenticated, lockNotice 
 
           {/* Developer Credits Section */}
           <div className="mt-6 pt-5 border-t border-neutral-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-            <span className="text-neutral-400 font-medium">Developed by Shashank Rajput</span>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <span className="text-neutral-400 font-medium">Developed by Shashank Rajput</span>
+              <a href="/admin/" className="text-[11px] text-neutral-500 hover:text-emerald-400 hover:underline">
+                Admin Console
+              </a>
+            </div>
             <div className="flex items-center gap-3">
               {/* Instagram with icon only */}
               <a
